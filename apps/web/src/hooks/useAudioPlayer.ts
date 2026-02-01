@@ -206,12 +206,23 @@ export function useAudioPlayer() {
     }
   }, [playbackRate]);
 
-  // Auto-play khi chuyển sang item mới: tự động generate và phát
+  /**
+   * Auto-play khi chuyển sang item mới
+   * CHÚ Ý: Chỉ trigger khi index thay đổi, KHÔNG trigger khi status thay đổi
+   * để tránh race condition với generateAndPlay()
+   */
   useEffect(() => {
     if (!currentItem) return;
     
-    // Nếu item đã có audio, phát luôn
-    if (currentItem.audioUrl && currentItem.status === 'ready') {
+    // QUAN TRỌNG: Không trigger nếu đang generating hoặc playing
+    // vì generateAndPlay() đã handle việc phát audio
+    if (currentItem.status === 'generating' || currentItem.status === 'playing') {
+      return;
+    }
+    
+    // Nếu item đã có audio và status là 'ready' (được set từ trước, không phải từ generateAndPlay)
+    // Trường hợp này xảy ra khi user quay lại item đã phát trước đó
+    if (currentItem.audioUrl && currentItem.status === 'completed') {
       playAudio(currentItem.audioUrl);
       updateQueueItem(currentItem.id, { status: 'playing' });
       return;

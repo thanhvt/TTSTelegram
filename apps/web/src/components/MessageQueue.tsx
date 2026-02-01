@@ -24,10 +24,24 @@ export function MessageQueue() {
     return (
       <div className="card h-full flex flex-col">
         <h2 className="text-lg font-semibold text-white mb-4">Queue</h2>
-        <div className="flex-1 flex items-center justify-center text-gray-500">
-          <div className="text-center">
-            <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>Chưa có tin nhắn trong queue</p>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center px-6">
+            {/* Empty State Illustration - SVG với animation */}
+            <div className="relative mb-6">
+              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-primary/20 to-accent/10 flex items-center justify-center animate-pulse">
+                <MessageSquare className="w-12 h-12 text-primary/60" />
+              </div>
+              {/* Decorative dots */}
+              <div className="absolute top-0 right-1/4 w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '0.1s' }} />
+              <div className="absolute bottom-2 left-1/4 w-1.5 h-1.5 rounded-full bg-accent/40 animate-bounce" style={{ animationDelay: '0.3s' }} />
+            </div>
+            
+            <h3 className="text-lg font-medium text-gray-300 mb-2">
+              Chưa có tin nhắn trong queue
+            </h3>
+            <p className="text-sm text-gray-500 max-w-[200px] mx-auto">
+              Chọn groups bên trái và bấm <span className="text-primary font-medium">"Bắt đầu đọc"</span> để bắt đầu
+            </p>
           </div>
         </div>
       </div>

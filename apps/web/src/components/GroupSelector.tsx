@@ -260,14 +260,14 @@ function DialogItem({
           : 'bg-surface-light/50 hover:bg-surface-light border border-transparent'
       }`}
     >
-      {/* Checkbox */}
+      {/* Checkbox - Tăng kích thước từ 20px lên 24px để dễ tap hơn trên mobile */}
       <div
-        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-          isSelected ? 'bg-primary border-primary' : 'border-gray-500'
+        className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+          isSelected ? 'bg-primary border-primary' : 'border-gray-400 hover:border-gray-300'
         }`}
       >
         {isSelected && (
-          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
           </svg>
         )}
@@ -285,11 +285,11 @@ function DialogItem({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="font-medium text-white truncate">{dialog.title}</div>
-        <div className="text-xs text-gray-500">
-          {TYPE_LABELS[dialog.type]}
+        <div className="text-xs text-gray-500 flex items-center gap-2">
+          <span>{TYPE_LABELS[dialog.type]}</span>
           {dialog.unreadCount > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 bg-primary rounded-full text-white">
-              {dialog.unreadCount} chưa đọc
+            <span className="px-2 py-0.5 bg-amber-500 rounded-full text-slate-900 font-semibold text-[11px]">
+              {dialog.unreadCount > 999 ? '999+' : dialog.unreadCount} chưa đọc
             </span>
           )}
         </div>
