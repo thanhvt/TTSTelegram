@@ -8,9 +8,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Howl } from 'howler';
 import { useAppStore } from '../stores/appStore';
-import { ttsApi } from '../lib/api';
+import { ttsApi, messagesApi } from '../lib/api';
 
-export function useAudioPlayer() {
+interface UseAudioPlayerOptions {
+  /**
+   * Chỉ 1 instance được phép auto-play để tránh trigger generateAndPlay() nhiều lần
+   * Mặc định là false
+   */
+  enableAutoPlay?: boolean;
+}
+
+export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
+  const { enableAutoPlay = false } = options;
   const howlRef = useRef<Howl | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -73,6 +82,16 @@ export function useAudioPlayer() {
           // Chuyển sang tin nhắn tiếp theo
           if (currentItem) {
             updateQueueItem(currentItem.id, { status: 'completed' });
+            
+            // Đồng bộ trạng thái đã đọc về Telegram (fire-and-forget)
+            messagesApi.markAsRead(currentItem.message.dialogId, [currentItem.message.id])
+              .then(() => {
+                console.log(`✅ Đã đánh dấu đọc tin nhắn ${currentItem.message.id}`);
+              })
+              .catch((error) => {
+                // Lỗi đánh dấu đã đọc không ảnh hưởng đến flow chính
+                console.warn('⚠️ Không thể đánh dấu đã đọc:', error);
+              });
           }
           // Tự động chuyển sang item tiếp theo
           nextInQueue();
@@ -208,20 +227,19 @@ export function useAudioPlayer() {
 
   /**
    * Auto-play khi chuyển sang item mới
-   * CHÚ Ý: Chỉ trigger khi index thay đổi, KHÔNG trigger khi status thay đổi
-   * để tránh race condition với generateAndPlay()
+   * CHÚ Ý: Chỉ run nếu enableAutoPlay = true để tránh multiple instances trigger
    */
   useEffect(() => {
+    // QUAN TRỌNG: Chỉ 1 instance được phép auto-play
+    if (!enableAutoPlay) return;
     if (!currentItem) return;
     
-    // QUAN TRỌNG: Không trigger nếu đang generating hoặc playing
-    // vì generateAndPlay() đã handle việc phát audio
+    // Không trigger nếu đang generating hoặc playing
     if (currentItem.status === 'generating' || currentItem.status === 'playing') {
       return;
     }
     
-    // Nếu item đã có audio và status là 'ready' (được set từ trước, không phải từ generateAndPlay)
-    // Trường hợp này xảy ra khi user quay lại item đã phát trước đó
+    // Nếu item đã có audio và đã completed, phát lại
     if (currentItem.audioUrl && currentItem.status === 'completed') {
       playAudio(currentItem.audioUrl);
       updateQueueItem(currentItem.id, { status: 'playing' });
@@ -232,7 +250,7 @@ export function useAudioPlayer() {
     if (currentItem.status === 'pending') {
       generateAndPlay();
     }
-  }, [currentQueueIndex, currentItem?.id]);
+  }, [enableAutoPlay, currentQueueIndex, currentItem?.id]);
 
   // Cleanup
   useEffect(() => {

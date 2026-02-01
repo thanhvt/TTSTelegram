@@ -126,6 +126,19 @@ export const messagesApi = {
       method: 'POST',
       body: JSON.stringify({ dialogIds, limit }),
     }),
+
+  /**
+   * Đánh dấu tin nhắn đã đọc trên Telegram
+   *
+   * @param dialogId - ID của dialog
+   * @param messageIds - Mảng các ID tin nhắn cần đánh dấu đã đọc
+   * @returns Promise<{ marked: number }> - Số lượng tin nhắn đã đánh dấu
+   */
+  markAsRead: (dialogId: string, messageIds: number[]) =>
+    fetchApi<{ marked: number }>('/messages/mark-read', {
+      method: 'POST',
+      body: JSON.stringify({ dialogId, messageIds }),
+    }),
 };
 
 // ============================================

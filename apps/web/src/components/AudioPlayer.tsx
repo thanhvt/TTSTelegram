@@ -38,6 +38,8 @@ export function AudioPlayer() {
     previousInQueue,
   } = useAppStore();
 
+  // QUAN TRỌNG: Chỉ AudioPlayer được phép enableAutoPlay = true
+  // để tránh multiple instances trigger generateAndPlay()
   const {
     isPlaying,
     isLoading,
@@ -46,7 +48,7 @@ export function AudioPlayer() {
     currentItem,
     togglePlayPause,
     seek,
-  } = useAudioPlayer();
+  } = useAudioPlayer({ enableAutoPlay: true });
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 

@@ -119,4 +119,54 @@ router.post('/batch', async (req: Request, res: Response<ApiResponse<Record<stri
   }
 });
 
+/**
+ * POST /api/messages/mark-read
+ * Đánh dấu tin nhắn đã đọc trên Telegram
+ *
+ * @body dialogId - ID của dialog
+ * @body messageIds - Mảng các ID tin nhắn cần đánh dấu đã đọc
+ */
+router.post('/mark-read', async (req: Request, res: Response<ApiResponse<{ marked: number }>>) => {
+  try {
+    if (telegramService.status !== 'connected') {
+      res.status(401).json({
+        success: false,
+        error: 'Chưa đăng nhập Telegram',
+      });
+      return;
+    }
+
+    const { dialogId, messageIds } = req.body as {
+      dialogId: string;
+      messageIds: number[];
+    };
+
+    if (!dialogId || !Array.isArray(messageIds) || messageIds.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: 'Cần cung cấp dialogId và messageIds',
+      });
+      return;
+    }
+
+    // Lấy message ID lớn nhất để đánh dấu đã đọc đến đó
+    const maxMessageId = Math.max(...messageIds);
+    
+    await telegramService.markAsRead(dialogId, maxMessageId);
+
+    console.log(`📖 Đã đánh dấu đọc ${messageIds.length} tin nhắn trong dialog ${dialogId}`);
+
+    res.json({
+      success: true,
+      data: { marked: messageIds.length },
+    });
+  } catch (error) {
+    console.error('Lỗi đánh dấu đã đọc:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Không thể đánh dấu đã đọc',
+    });
+  }
+});
+
 export default router;

@@ -259,6 +259,49 @@ class TelegramService {
   }
 
   /**
+   * Đánh dấu tin nhắn đã đọc trên Telegram
+   *
+   * @param dialogId - ID của dialog (group/channel/user)
+   * @param maxMessageId - ID tin nhắn lớn nhất đã đọc
+   * @returns Promise<boolean> - true nếu đánh dấu thành công
+   * @usage Gọi khi tin nhắn đã được phát xong (status = completed)
+   */
+  async markAsRead(dialogId: string, maxMessageId: number): Promise<boolean> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Chưa đăng nhập Telegram');
+    }
+
+    try {
+      const entity = await this.client.getEntity(dialogId);
+      
+      // Kiểm tra xem là channel/megagroup hay chat thường
+      if (entity.className === 'Channel') {
+        // Đối với channel/megagroup, sử dụng channels.readHistory
+        await this.client.invoke(
+          new Api.channels.ReadHistory({
+            channel: entity,
+            maxId: maxMessageId,
+          })
+        );
+      } else {
+        // Đối với chat thường (user, group), sử dụng messages.readHistory
+        await this.client.invoke(
+          new Api.messages.ReadHistory({
+            peer: entity,
+            maxId: maxMessageId,
+          })
+        );
+      }
+
+      console.log(`✅ Telegram: Đã đánh dấu đọc tin nhắn ${maxMessageId} trong ${dialogId}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Telegram: Lỗi đánh dấu đã đọc:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Đăng xuất và xóa session
    */
   async logout(): Promise<void> {
