@@ -1,0 +1,224 @@
+/**
+ * AudioPlayer - Component điều khiển phát audio
+ *
+ * @description Hiển thị player với controls, progress bar, volume
+ */
+
+import {
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
+  Volume2,
+  VolumeX,
+  Gauge,
+  Loader2,
+} from 'lucide-react';
+import { useAppStore } from '../stores/appStore';
+import { useAudioPlayer } from '../hooks/useAudioPlayer';
+
+/**
+ * Format thời gian thành mm:ss
+ */
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+export function AudioPlayer() {
+  const {
+    volume,
+    setVolume,
+    playbackRate,
+    setPlaybackRate,
+    queue,
+    currentQueueIndex,
+    nextInQueue,
+    previousInQueue,
+  } = useAppStore();
+
+  const {
+    isPlaying,
+    isLoading,
+    currentTime,
+    duration,
+    currentItem,
+    togglePlayPause,
+    seek,
+  } = useAudioPlayer();
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  // Không có gì trong queue
+  if (queue.length === 0) {
+    return (
+      <div className="card bg-gradient-to-r from-surface to-surface-light">
+        <div className="text-center py-6 text-gray-400">
+          <p className="text-lg">🎧 Chưa có tin nhắn nào trong queue</p>
+          <p className="text-sm mt-2">Chọn groups và bấm "Bắt đầu đọc" để bắt đầu</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card bg-gradient-to-r from-surface to-surface-light">
+      {/* Now Playing Info */}
+      <div className="mb-4">
+        <div className="flex items-center gap-3">
+          {/* Audio Wave Animation */}
+          {isPlaying && (
+            <div className="audio-wave">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <div className="text-sm text-gray-400">
+              Đang phát: {currentQueueIndex + 1} / {queue.length}
+            </div>
+            <div className="font-medium text-white truncate">
+              {currentItem?.dialogTitle || 'Unknown'}
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <div
+            className={`px-2 py-1 rounded text-xs font-medium ${
+              currentItem?.status === 'generating'
+                ? 'bg-warning/20 text-warning'
+                : currentItem?.status === 'error'
+                ? 'bg-error/20 text-error'
+                : currentItem?.status === 'playing'
+                ? 'bg-success/20 text-success'
+                : 'bg-surface-light text-gray-400'
+            }`}
+          >
+            {currentItem?.status === 'generating' && 'Đang tạo audio...'}
+            {currentItem?.status === 'error' && 'Lỗi'}
+            {currentItem?.status === 'playing' && 'Đang phát'}
+            {currentItem?.status === 'ready' && 'Sẵn sàng'}
+            {currentItem?.status === 'pending' && 'Chờ'}
+          </div>
+        </div>
+
+        {/* Message Preview */}
+        {currentItem && (
+          <div className="mt-2 p-3 bg-background/50 rounded-lg">
+            <p className="text-sm text-gray-300 line-clamp-2">{currentItem.message.text}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mb-4">
+        <div
+          className="h-2 bg-surface-light rounded-full overflow-hidden cursor-pointer"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            seek(percent * duration);
+          }}
+        >
+          <div
+            className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-100"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-4">
+        {/* Previous */}
+        <button
+          onClick={previousInQueue}
+          disabled={currentQueueIndex === 0}
+          className="btn-ghost p-3 disabled:opacity-30"
+          title="Tin trước (P)"
+        >
+          <SkipBack className="w-6 h-6" />
+        </button>
+
+        {/* Play/Pause */}
+        <button
+          onClick={togglePlayPause}
+          disabled={isLoading}
+          className="btn-primary p-4 rounded-full"
+          title="Play/Pause (Space)"
+        >
+          {isLoading ? (
+            <Loader2 className="w-8 h-8 animate-spin" />
+          ) : isPlaying ? (
+            <Pause className="w-8 h-8" />
+          ) : (
+            <Play className="w-8 h-8 ml-1" />
+          )}
+        </button>
+
+        {/* Next */}
+        <button
+          onClick={nextInQueue}
+          disabled={currentQueueIndex >= queue.length - 1}
+          className="btn-ghost p-3 disabled:opacity-30"
+          title="Tin tiếp (N)"
+        >
+          <SkipForward className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Volume & Speed Controls */}
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-surface-light">
+        {/* Volume */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setVolume(volume === 0 ? 0.8 : 0)}
+            className="btn-ghost p-1"
+            title="Mute (M)"
+          >
+            {volume === 0 ? (
+              <VolumeX className="w-5 h-5 text-gray-400" />
+            ) : (
+              <Volume2 className="w-5 h-5" />
+            )}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            className="w-20 accent-primary"
+          />
+          <span className="text-xs text-gray-500 w-8">{Math.round(volume * 100)}%</span>
+        </div>
+
+        {/* Playback Speed */}
+        <div className="flex items-center gap-2">
+          <Gauge className="w-5 h-5 text-gray-400" />
+          <select
+            value={playbackRate}
+            onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
+            className="bg-surface-light text-white text-sm px-2 py-1 rounded border-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1">1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}

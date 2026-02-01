@@ -1,0 +1,8 @@
+{
+  "name": "@tts-telegram/shared",
+  "version": "1.0.0",
+  "description": "Shared types for TTS Telegram",
+  "main": "types.ts",
+  "types": "types.ts",
+  "scripts": {}
+}
