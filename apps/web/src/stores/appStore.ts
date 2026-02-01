@@ -85,11 +85,11 @@ interface AppState {
   setPlaybackRate: (rate: number) => void;
 
   // Settings
-  ttsProvider: 'google' | 'openai';
+  ttsProvider: 'google' | 'openai' | 'google-cloud';
   selectedVoice: string;
   randomVoice: boolean;
   theme: ThemeType;
-  setTtsProvider: (provider: 'google' | 'openai') => void;
+  setTtsProvider: (provider: 'google' | 'openai' | 'google-cloud') => void;
   setSelectedVoice: (voice: string) => void;
   setRandomVoice: (enabled: boolean) => void;
   setTheme: (theme: ThemeType) => void;
@@ -170,7 +170,7 @@ export const useAppStore = create<AppState>()(
       setTtsProvider: (provider) => set({ 
         ttsProvider: provider,
         // Reset voice to default khi đổi provider
-        selectedVoice: provider === 'openai' ? 'nova' : 'vi'
+        selectedVoice: provider === 'openai' ? 'nova' : provider === 'google-cloud' ? 'vi-VN-Neural2-A' : 'vi'
       }),
       setSelectedVoice: (voice) => set({ selectedVoice: voice }),
       setRandomVoice: (enabled) => set({ randomVoice: enabled }),

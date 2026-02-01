@@ -252,7 +252,7 @@ class TelegramService {
         id: msg.id,
         dialogId,
         text: msg.message || '',
-        senderName: this.getSenderName(msg),
+        senderName: this.getSenderName(msg, entity),
         date: new Date(msg.date * 1000),
         isOutgoing: msg.out || false,
       }));
@@ -260,12 +260,35 @@ class TelegramService {
 
   /**
    * Lấy tên người gửi từ message
+   * @param msg - Message object
+   * @param contextEntity - Entity của dialog hiện tại (optional)
    */
-  private getSenderName(msg: Api.Message): string {
-    if (msg.fromId) {
-      // TODO: Cache sender info để tránh gọi API nhiều lần
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getSenderName(msg: Api.Message, contextEntity?: any): string {
+    const sender = msg.sender;
+
+    if (!sender) {
+      if (msg.post && contextEntity) {
+        // Nếu là post trong channel, fallback về tên channel
+        if (contextEntity instanceof Api.Channel || contextEntity instanceof Api.Chat) {
+            return contextEntity.title;
+        }
+      }
       return 'Unknown';
     }
+
+    if (sender instanceof Api.User) {
+        let name = sender.firstName || '';
+        if (sender.lastName) {
+            name += ' ' + sender.lastName;
+        }
+        return name.trim() || 'Unknown User';
+    }
+
+    if (sender instanceof Api.Channel || sender instanceof Api.Chat) {
+        return sender.title || 'Unknown Group/Channel';
+    }
+
     return 'Unknown';
   }
 

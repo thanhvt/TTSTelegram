@@ -25,7 +25,7 @@ const router: Router = Router();
 // Validation schema
 const synthesizeSchema = z.object({
   text: z.string().min(1).max(5000),
-  provider: z.enum(['google', 'openai']).optional(),
+  provider: z.enum(['google', 'openai', 'google-cloud']).optional(),
   voice: z.string().optional(),
   randomVoice: z.boolean().optional(),
   rate: z.number().min(-50).max(100).optional(),
@@ -39,7 +39,7 @@ const synthesizeSchema = z.object({
  *
  * @query provider - Filter theo provider (google/openai)
  */
-router.get('/voices', async (req: Request, res: Response<ApiResponse<{ voices: TTSVoice[]; openaiAvailable: boolean }>>) => {
+router.get('/voices', async (req: Request, res: Response<ApiResponse<{ voices: TTSVoice[]; openaiAvailable: boolean; googleCloudAvailable: boolean }>>) => {
   try {
     const provider = req.query.provider as TTSProvider | undefined;
 
@@ -55,6 +55,7 @@ router.get('/voices', async (req: Request, res: Response<ApiResponse<{ voices: T
       data: {
         voices,
         openaiAvailable: ttsService.isOpenAIAvailable(),
+        googleCloudAvailable: ttsService.isGoogleCloudAvailable(),
       },
     });
   } catch (error) {

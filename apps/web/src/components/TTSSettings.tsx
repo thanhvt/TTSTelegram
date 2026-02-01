@@ -18,18 +18,20 @@ interface TTSVoice {
   shortName: string;
   gender: 'Male' | 'Female' | 'Neutral';
   description?: string;
-  provider: 'google' | 'openai';
+  provider: 'google' | 'openai' | 'google-cloud';
 }
 
 interface VoicesData {
   voices: TTSVoice[];
   openaiAvailable: boolean;
+  googleCloudAvailable: boolean;
 }
 
 export function TTSSettings() {
   const [isOpen, setIsOpen] = useState(false);
   const [voices, setVoices] = useState<TTSVoice[]>([]);
   const [openaiAvailable, setOpenaiAvailable] = useState(false);
+  const [googleCloudAvailable, setGoogleCloudAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -61,6 +63,7 @@ export function TTSSettings() {
       const data = await ttsApi.getVoices() as VoicesData;
       setVoices(data.voices);
       setOpenaiAvailable(data.openaiAvailable);
+      setGoogleCloudAvailable(data.googleCloudAvailable);
     } catch (error) {
       console.error('Lỗi lấy voices:', error);
     } finally {
@@ -71,9 +74,13 @@ export function TTSSettings() {
   // Lọc voices theo provider hiện tại
   const filteredVoices = voices.filter(v => v.provider === ttsProvider);
 
-  const handleProviderChange = (provider: 'google' | 'openai') => {
+  const handleProviderChange = (provider: 'google' | 'openai' | 'google-cloud') => {
     if (provider === 'openai' && !openaiAvailable) {
       alert('OpenAI TTS chưa được cấu hình. Vui lòng thêm OPENAI_API_KEY vào file .env');
+      return;
+    }
+    if (provider === 'google-cloud' && !googleCloudAvailable) {
+      alert('Google Cloud TTS chưa được cấu hình. Vui lòng thêm GOOGLE_CLOUD_API_KEY vào file .env');
       return;
     }
     setTtsProvider(provider);
@@ -130,23 +137,47 @@ export function TTSSettings() {
                   <Mic className="w-4 h-4" />
                   Nhà cung cấp TTS
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Google TTS (Free) */}
                   <button
                     onClick={() => handleProviderChange('google')}
-                    className={`p-4 rounded-xl border-2 transition-all ${
+                    className={`p-3 rounded-xl border-2 transition-all ${
                       ttsProvider === 'google'
                         ? 'border-primary bg-primary/10 text-white'
                         : 'border-surface-light bg-surface-light/50 text-gray-400 hover:border-gray-500'
                     }`}
                   >
-                    <div className="text-2xl mb-2">🔊</div>
-                    <div className="font-medium">Google TTS</div>
-                    <div className="text-xs opacity-70 mt-1">Miễn phí</div>
+                    <div className="text-xl mb-1">🔊</div>
+                    <div className="font-medium text-sm">Google</div>
+                    <div className="text-xs opacity-70">Miễn phí</div>
                   </button>
 
+                  {/* Google Cloud TTS */}
+                  <button
+                    onClick={() => handleProviderChange('google-cloud')}
+                    className={`p-3 rounded-xl border-2 transition-all relative ${
+                      ttsProvider === 'google-cloud'
+                        ? 'border-blue-500 bg-blue-500/10 text-white'
+                        : googleCloudAvailable
+                        ? 'border-surface-light bg-surface-light/50 text-gray-400 hover:border-gray-500'
+                        : 'border-surface-light bg-surface-light/30 text-gray-600 cursor-not-allowed'
+                    }`}
+                    disabled={!googleCloudAvailable}
+                  >
+                    {!googleCloudAvailable && (
+                      <div className="absolute top-1 right-1 text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded-full">
+                        API Key
+                      </div>
+                    )}
+                    <div className="text-xl mb-1">☁️</div>
+                    <div className="font-medium text-sm">G-Cloud</div>
+                    <div className="text-xs opacity-70">Premium</div>
+                  </button>
+
+                  {/* OpenAI TTS */}
                   <button
                     onClick={() => handleProviderChange('openai')}
-                    className={`p-4 rounded-xl border-2 transition-all relative ${
+                    className={`p-3 rounded-xl border-2 transition-all relative ${
                       ttsProvider === 'openai'
                         ? 'border-green-500 bg-green-500/10 text-white'
                         : openaiAvailable
@@ -156,13 +187,13 @@ export function TTSSettings() {
                     disabled={!openaiAvailable}
                   >
                     {!openaiAvailable && (
-                      <div className="absolute top-2 right-2 text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">
-                        Cần API Key
+                      <div className="absolute top-1 right-1 text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded-full">
+                        API Key
                       </div>
                     )}
-                    <div className="text-2xl mb-2">✨</div>
-                    <div className="font-medium">OpenAI TTS</div>
-                    <div className="text-xs opacity-70 mt-1">Chất lượng cao</div>
+                    <div className="text-xl mb-1">✨</div>
+                    <div className="font-medium text-sm">OpenAI</div>
+                    <div className="text-xs opacity-70">Đa ngôn ngữ</div>
                   </button>
                 </div>
               </div>
@@ -277,7 +308,9 @@ export function TTSSettings() {
               <div className="mt-4 pt-4 border-t border-surface-light/50">
                 <div className="text-xs text-gray-500 text-center">
                   {ttsProvider === 'openai' 
-                    ? '💡 OpenAI TTS có phí ~$0.015/1000 ký tự'
+                    ? '💡 OpenAI TTS có phí ~$0.015/1K ký tự'
+                    : ttsProvider === 'google-cloud'
+                    ? '💡 Google Cloud: Neural2 ~$16/1M chars, Standard ~$4/1M chars'
                     : '💡 Google TTS miễn phí và ổn định'}
                 </div>
               </div>

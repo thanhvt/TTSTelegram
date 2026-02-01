@@ -156,21 +156,28 @@ export function AudioPlayer() {
       </div>
 
       {/* Progress Bar */}
-      <div className="mb-4">
+      <div className="mb-4 group select-none">
         <div
-          className="h-2 bg-surface-light rounded-full overflow-hidden cursor-pointer"
+          className="relative h-3 bg-surface-light rounded-full cursor-pointer touch-none"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
+            const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
             seek(percent * duration);
           }}
         >
+          {/* Progress Fill */}
           <div
-            className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-100"
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-100 will-change-[width]"
             style={{ width: `${progress}%` }}
-          />
+          >
+            {/* Glow Animation */}
+            <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
+            
+            {/* Indicator Knob - Always visible per user request */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/3 w-5 h-5 bg-white border-2 border-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)] z-10 transform transition-transform hover:scale-110" />
+          </div>
         </div>
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <div className="flex justify-between text-xs text-gray-400 mt-2 font-medium">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>

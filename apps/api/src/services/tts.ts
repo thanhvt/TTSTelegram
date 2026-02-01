@@ -12,6 +12,7 @@
 // @ts-ignore - node-gtts không có type declarations
 import gTTS from 'node-gtts';
 import OpenAI from 'openai';
+import { TextToSpeechClient, protos } from '@google-cloud/text-to-speech';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -20,7 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 // TYPES
 // ============================================
 
-export type TTSProvider = 'google' | 'openai';
+export type TTSProvider = 'google' | 'openai' | 'google-cloud';
 
 export interface TTSVoice {
   id: string;
@@ -160,19 +161,123 @@ const OPENAI_VOICES: TTSVoice[] = [
   },
 ];
 
+/**
+ * Danh sách giọng Google Cloud TTS tiếng Việt
+ * Bao gồm Neural2, WaveNet và Standard
+ * Chi phí: Neural2 ~$16/1M chars, WaveNet ~$16/1M chars, Standard ~$4/1M chars
+ */
+const GOOGLE_CLOUD_VOICES: TTSVoice[] = [
+  // Neural2 - Chất lượng cao nhất
+  {
+    id: 'vi-VN-Neural2-A',
+    name: 'Neural2 Nữ A',
+    shortName: 'vi-VN-Neural2-A',
+    gender: 'Female',
+    locale: 'vi-VN',
+    description: '⭐ Chất lượng cao, tự nhiên',
+    provider: 'google-cloud',
+  },
+  {
+    id: 'vi-VN-Neural2-D',
+    name: 'Neural2 Nam D',
+    shortName: 'vi-VN-Neural2-D',
+    gender: 'Male',
+    locale: 'vi-VN',
+    description: '⭐ Chất lượng cao, tự nhiên',
+    provider: 'google-cloud',
+  },
+  // WaveNet - Chất lượng cao
+  {
+    id: 'vi-VN-Wavenet-A',
+    name: 'WaveNet Nữ A',
+    shortName: 'vi-VN-Wavenet-A',
+    gender: 'Female',
+    locale: 'vi-VN',
+    description: 'Giọng nữ, mềm mại',
+    provider: 'google-cloud',
+  },
+  {
+    id: 'vi-VN-Wavenet-B',
+    name: 'WaveNet Nam B',
+    shortName: 'vi-VN-Wavenet-B',
+    gender: 'Male',
+    locale: 'vi-VN',
+    description: 'Giọng nam, trầm ấm',
+    provider: 'google-cloud',
+  },
+  {
+    id: 'vi-VN-Wavenet-C',
+    name: 'WaveNet Nữ C',
+    shortName: 'vi-VN-Wavenet-C',
+    gender: 'Female',
+    locale: 'vi-VN',
+    description: 'Giọng nữ, trong trẻo',
+    provider: 'google-cloud',
+  },
+  {
+    id: 'vi-VN-Wavenet-D',
+    name: 'WaveNet Nam D',
+    shortName: 'vi-VN-Wavenet-D',
+    gender: 'Male',
+    locale: 'vi-VN',
+    description: 'Giọng nam, rõ ràng',
+    provider: 'google-cloud',
+  },
+  // Standard - Miễn phí tier
+  {
+    id: 'vi-VN-Standard-A',
+    name: 'Standard Nữ A',
+    shortName: 'vi-VN-Standard-A',
+    gender: 'Female',
+    locale: 'vi-VN',
+    description: 'Giọng cơ bản, tiết kiệm',
+    provider: 'google-cloud',
+  },
+  {
+    id: 'vi-VN-Standard-B',
+    name: 'Standard Nam B',
+    shortName: 'vi-VN-Standard-B',
+    gender: 'Male',
+    locale: 'vi-VN',
+    description: 'Giọng cơ bản, tiết kiệm',
+    provider: 'google-cloud',
+  },
+  {
+    id: 'vi-VN-Standard-C',
+    name: 'Standard Nữ C',
+    shortName: 'vi-VN-Standard-C',
+    gender: 'Female',
+    locale: 'vi-VN',
+    description: 'Giọng cơ bản, tiết kiệm',
+    provider: 'google-cloud',
+  },
+  {
+    id: 'vi-VN-Standard-D',
+    name: 'Standard Nam D',
+    shortName: 'vi-VN-Standard-D',
+    gender: 'Male',
+    locale: 'vi-VN',
+    description: 'Giọng cơ bản, tiết kiệm',
+    provider: 'google-cloud',
+  },
+];
+
 // ============================================
 // TTS SERVICE
 // ============================================
 
 class TTSService {
   private openaiClient: OpenAI | null = null;
+  private googleCloudClient: TextToSpeechClient | null = null;
   private defaultProvider: TTSProvider = 'google';
   private defaultGoogleVoice = 'vi';
   private defaultOpenAIVoice = 'nova';
+  private defaultGoogleCloudVoice = 'vi-VN-Neural2-A';
 
   constructor() {
     this.ensureCacheDir();
     this.initOpenAI();
+    this.initGoogleCloud();
   }
 
   /**
@@ -185,6 +290,22 @@ class TTSService {
       console.log('✅ TTS: OpenAI đã khởi tạo');
     } else {
       console.log('⚠️ TTS: Không có OPENAI_API_KEY - OpenAI TTS bị tắt');
+    }
+  }
+
+  /**
+   * Khởi tạo Google Cloud TTS client nếu có API key
+   */
+  private initGoogleCloud(): void {
+    const apiKey = process.env.GOOGLE_CLOUD_API_KEY;
+    if (apiKey) {
+      // Sử dụng API key để khởi tạo client
+      this.googleCloudClient = new TextToSpeechClient({
+        apiKey: apiKey,
+      });
+      console.log('✅ TTS: Google Cloud đã khởi tạo');
+    } else {
+      console.log('⚠️ TTS: Không có GOOGLE_CLOUD_API_KEY - Google Cloud TTS bị tắt');
     }
   }
 
@@ -204,14 +325,32 @@ class TTSService {
    * Lấy danh sách voices theo provider
    */
   getVoicesByProvider(provider: TTSProvider): TTSVoice[] {
-    return provider === 'openai' ? OPENAI_VOICES : GOOGLE_VOICES;
+    switch (provider) {
+      case 'openai':
+        return OPENAI_VOICES;
+      case 'google-cloud':
+        return GOOGLE_CLOUD_VOICES;
+      default:
+        return GOOGLE_VOICES;
+    }
   }
 
   /**
    * Lấy tất cả voices
    */
   getAllVoices(): TTSVoice[] {
-    return [...GOOGLE_VOICES, ...(this.openaiClient ? OPENAI_VOICES : [])];
+    return [
+      ...GOOGLE_VOICES,
+      ...(this.openaiClient ? OPENAI_VOICES : []),
+      ...(this.googleCloudClient ? GOOGLE_CLOUD_VOICES : []),
+    ];
+  }
+
+  /**
+   * Kiểm tra Google Cloud có khả dụng không
+   */
+  isGoogleCloudAvailable(): boolean {
+    return this.googleCloudClient !== null;
   }
 
   /**
@@ -279,6 +418,48 @@ class TTSService {
   }
 
   /**
+   * Synthesize với Google Cloud TTS
+   * 
+   * @description Sử dụng Google Cloud Text-to-Speech API với Neural2/WaveNet/Standard voices
+   * @param text - Văn bản cần synthesize  
+   * @param voice - Tên voice (ví dụ: vi-VN-Neural2-A)
+   * @param id - ID duy nhất của audio
+   * @param filepath - Đường dẫn lưu file audio
+   */
+  private async synthesizeWithGoogleCloud(
+    text: string,
+    voice: string,
+    id: string,
+    filepath: string
+  ): Promise<void> {
+    if (!this.googleCloudClient) {
+      throw new Error('Google Cloud TTS không khả dụng - thiếu API key');
+    }
+
+    // Tạo request cho Google Cloud TTS
+    const request: protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest = {
+      input: { text },
+      voice: {
+        languageCode: 'vi-VN',
+        name: voice,
+      },
+      audioConfig: {
+        audioEncoding: protos.google.cloud.texttospeech.v1.AudioEncoding.MP3,
+      },
+    };
+
+    // Gọi API
+    const [response] = await this.googleCloudClient.synthesizeSpeech(request);
+
+    if (!response.audioContent) {
+      throw new Error('Không nhận được audio từ Google Cloud TTS');
+    }
+
+    // Lưu file
+    await fs.writeFile(filepath, response.audioContent as Buffer);
+  }
+
+  /**
    * Tạo audio từ text
    *
    * @param request - Yêu cầu synthesize với provider, voice, randomVoice
@@ -299,6 +480,12 @@ class TTSService {
       provider = 'google';
     }
 
+    // Fallback nếu Google Cloud không khả dụng
+    if (provider === 'google-cloud' && !this.googleCloudClient) {
+      console.log('⚠️ TTS: Fallback từ Google Cloud sang Google (miễn phí)');
+      provider = 'google';
+    }
+
     // Random voice nếu được bật
     if (randomVoice) {
       const randomVoiceObj = this.getRandomVoice(provider);
@@ -308,7 +495,16 @@ class TTSService {
 
     // Default voice theo provider
     if (!voice) {
-      voice = provider === 'openai' ? this.defaultOpenAIVoice : this.defaultGoogleVoice;
+      switch (provider) {
+        case 'openai':
+          voice = this.defaultOpenAIVoice;
+          break;
+        case 'google-cloud':
+          voice = this.defaultGoogleCloudVoice;
+          break;
+        default:
+          voice = this.defaultGoogleVoice;
+      }
     }
 
     // Giới hạn text
@@ -324,6 +520,8 @@ class TTSService {
 
       if (provider === 'openai') {
         await this.synthesizeWithOpenAI(truncatedText, voice, id, filepath);
+      } else if (provider === 'google-cloud') {
+        await this.synthesizeWithGoogleCloud(truncatedText, voice, id, filepath);
       } else {
         await this.synthesizeWithGoogle(truncatedText, voice, id, filepath);
       }

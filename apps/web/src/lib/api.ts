@@ -145,7 +145,7 @@ export const messagesApi = {
 // TTS API
 // ============================================
 
-export type TTSProvider = 'google' | 'openai';
+export type TTSProvider = 'google' | 'openai' | 'google-cloud';
 
 export interface TTSVoice {
   id: string;
@@ -176,10 +176,10 @@ export interface TTSSynthesizeOptions {
 
 export const ttsApi = {
   /**
-   * Lấy danh sách giọng đọc và trạng thái OpenAI
+   * Lấy danh sách giọng đọc và trạng thái các providers
    */
   getVoices: (provider?: TTSProvider) =>
-    fetchApi<{ voices: TTSVoice[]; openaiAvailable: boolean }>(
+    fetchApi<{ voices: TTSVoice[]; openaiAvailable: boolean; googleCloudAvailable: boolean }>(
       provider ? `/tts/voices?provider=${provider}` : '/tts/voices'
     ),
 
