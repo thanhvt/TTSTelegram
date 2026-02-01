@@ -80,17 +80,19 @@ interface AppState {
 
   // Settings
   selectedVoice: string;
+  randomVoice: boolean; // Chế độ ngẫu nhiên giọng đọc
   setSelectedVoice: (voice: string) => void;
+  setRandomVoice: (enabled: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Auth
-      authStatus: 'disconnected',
-      phoneNumber: '',
-      setAuthStatus: (status) => set({ authStatus: status }),
-      setPhoneNumber: (phone) => set({ phoneNumber: phone }),
+      authStatus: 'disconnected' as AuthStatus,
+      phoneNumber: '+84376340112', // Số điện thoại mặc định của anh Thành
+      setAuthStatus: (status: AuthStatus) => set({ authStatus: status }),
+      setPhoneNumber: (phone: string) => set({ phoneNumber: phone }),
 
       // Dialogs
       dialogs: [],
@@ -152,8 +154,10 @@ export const useAppStore = create<AppState>()(
       setPlaybackRate: (rate) => set({ playbackRate: rate }),
 
       // Settings
-      selectedVoice: 'vi-VN-HoaiMyNeural',
+      selectedVoice: 'vi', // Google TTS Vietnamese
+      randomVoice: false, // Chế độ ngẫu nhiên giọng đọc
       setSelectedVoice: (voice) => set({ selectedVoice: voice }),
+      setRandomVoice: (enabled) => set({ randomVoice: enabled }),
     }),
     {
       name: 'tts-telegram-storage',
@@ -162,6 +166,7 @@ export const useAppStore = create<AppState>()(
         volume: state.volume,
         playbackRate: state.playbackRate,
         selectedVoice: state.selectedVoice,
+        randomVoice: state.randomVoice,
       }),
     }
   )

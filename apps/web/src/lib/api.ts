@@ -133,10 +133,12 @@ export const messagesApi = {
 // ============================================
 
 export interface TTSVoice {
+  id: string;
   name: string;
   shortName: string;
-  gender: 'Male' | 'Female';
+  gender: 'Male' | 'Female' | 'Neutral';
   locale: string;
+  description?: string;
 }
 
 export interface TTSResult {
@@ -144,6 +146,14 @@ export interface TTSResult {
   audioUrl: string;
   duration: number;
   text: string;
+  voiceUsed?: string; // Giọng đọc đã sử dụng
+}
+
+export interface TTSSynthesizeOptions {
+  text: string;
+  voice?: string;
+  randomVoice?: boolean;
+  rate?: number;
 }
 
 export const ttsApi = {
@@ -155,11 +165,13 @@ export const ttsApi = {
 
   /**
    * Tạo audio từ text
+   *
+   * @param options - Options bao gồm text, voice, randomVoice, rate
    */
-  synthesize: (text: string, voice?: string, rate?: number) =>
+  synthesize: (options: TTSSynthesizeOptions) =>
     fetchApi<TTSResult>('/tts/synthesize', {
       method: 'POST',
-      body: JSON.stringify({ text, voice, rate }),
+      body: JSON.stringify(options),
     }),
 
   /**

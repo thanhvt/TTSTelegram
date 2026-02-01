@@ -78,7 +78,7 @@ export function LoginForm() {
         </div>
         <h2 className="text-xl font-semibold text-white">Đăng nhập Telegram</h2>
         <p className="text-gray-400 text-sm mt-1">
-          {authStatus === 'awaiting_phone' && 'Nhập số điện thoại để nhận mã xác thực'}
+          {(authStatus === 'awaiting_phone' || authStatus === 'disconnected') && 'Nhập số điện thoại để nhận mã xác thực'}
           {authStatus === 'awaiting_code' && 'Nhập mã OTP đã gửi đến Telegram của bạn'}
           {authStatus === 'awaiting_2fa' && 'Nhập mật khẩu hai lớp (2FA)'}
         </p>
@@ -91,7 +91,7 @@ export function LoginForm() {
       )}
 
       {/* Form nhập số điện thoại */}
-      {authStatus === 'awaiting_phone' && (
+      {(authStatus === 'awaiting_phone' || authStatus === 'disconnected') && (
         <form onSubmit={handleSendCode}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-300 mb-2">

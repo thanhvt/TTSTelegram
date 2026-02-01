@@ -25,6 +25,8 @@ export function useAudioPlayer() {
     currentQueueIndex,
     updateQueueItem,
     nextInQueue,
+    selectedVoice,
+    randomVoice,
   } = useAppStore();
 
   const currentItem = queue[currentQueueIndex];
@@ -90,6 +92,7 @@ export function useAudioPlayer() {
 
   /**
    * Tạo audio cho item hiện tại nếu chưa có
+   * Sử dụng voice và randomVoice từ store settings
    */
   const generateAndPlay = useCallback(async () => {
     if (!currentItem) return;
@@ -101,13 +104,22 @@ export function useAudioPlayer() {
       return;
     }
 
-    // Tạo audio mới
+    // Tạo audio mới với voice settings
     try {
       updateQueueItem(currentItem.id, { status: 'generating' });
       setIsLoading(true);
 
-      const result = await ttsApi.synthesize(currentItem.message.text);
+      const result = await ttsApi.synthesize({
+        text: currentItem.message.text,
+        voice: selectedVoice,
+        randomVoice: randomVoice,
+      });
       const audioUrl = ttsApi.getStreamUrl(result.id);
+
+      // Log voice được sử dụng nếu random mode
+      if (randomVoice && result.voiceUsed) {
+        console.log(`🎲 Giọng ngẫu nhiên: ${result.voiceUsed}`);
+      }
 
       updateQueueItem(currentItem.id, { audioUrl, status: 'ready' });
       playAudio(audioUrl);
@@ -120,7 +132,7 @@ export function useAudioPlayer() {
       });
       setIsLoading(false);
     }
-  }, [currentItem, playAudio, updateQueueItem]);
+  }, [currentItem, playAudio, updateQueueItem, selectedVoice, randomVoice]);
 
   /**
    * Toggle play/pause

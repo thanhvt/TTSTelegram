@@ -14,9 +14,13 @@ import {
   Square,
   Loader2,
   RefreshCw,
+  ArrowUpDown,
 } from 'lucide-react';
 import { dialogsApi } from '../lib/api';
 import { useAppStore, TelegramDialog } from '../stores/appStore';
+
+// Kiểu sắp xếp: theo thời gian hoặc số tin nhắn chưa đọc
+type SortOption = 'time' | 'unread';
 
 const TYPE_ICONS = {
   group: Users,
@@ -45,6 +49,7 @@ export function GroupSelector() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('time');
 
   /**
    * Fetch danh sách dialogs từ API
@@ -74,12 +79,24 @@ export function GroupSelector() {
   }, []);
 
   /**
-   * Filter dialogs theo search và type
+   * Lọc danh sách chỉ giữ lại Groups và Channels có tin nhắn chưa đọc
+   * - Loại bỏ Chat cá nhân (user type)
+   * - Loại bỏ những bản ghi không có tin nhắn mới
+   * - Áp dụng filter theo type, search và sắp xếp
    */
   const filteredDialogs = useMemo(() => {
-    return dialogs.filter((d) => {
-      // Filter theo type
-      if (filterType !== 'all' && d.type !== filterType) {
+    // Bước 1: Loại bỏ Chat cá nhân (user type) và những bản ghi không có tin nhắn mới
+    const groupsAndChannels = dialogs.filter(
+      (d) => d.type !== 'user' && d.unreadCount > 0
+    );
+    
+    // Bước 2: Filter theo type được chọn
+    let filtered = groupsAndChannels.filter((d) => {
+      // Filter theo type (group bao gồm cả megagroup)
+      if (filterType === 'group' && d.type !== 'group' && d.type !== 'megagroup') {
+        return false;
+      }
+      if (filterType === 'channel' && d.type !== 'channel') {
         return false;
       }
       // Filter theo search
@@ -88,16 +105,33 @@ export function GroupSelector() {
       }
       return true;
     });
-  }, [dialogs, filterType, searchQuery]);
+    
+    // Bước 3: Sắp xếp theo option được chọn
+    return filtered.sort((a, b) => {
+      if (sortBy === 'unread') {
+        // Sắp xếp theo số tin nhắn chưa đọc (nhiều -> ít)
+        return (b.unreadCount || 0) - (a.unreadCount || 0);
+      } else {
+        // Sắp xếp theo thời gian (mới nhất -> cũ nhất)
+        const dateA = a.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0;
+        const dateB = b.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0;
+        return dateB - dateA;
+      }
+    });
+  }, [dialogs, filterType, searchQuery, sortBy]);
 
   /**
-   * Đếm số lượng theo type
+   * Đếm số lượng theo type (chỉ đếm Groups và Channels có tin nhắn mới)
    */
   const typeCounts = useMemo(() => {
+    // Chỉ đếm Groups và Channels có tin nhắn mới (loại bỏ user type và unreadCount = 0)
+    const groupsAndChannels = dialogs.filter(
+      (d) => d.type !== 'user' && d.unreadCount > 0
+    );
     return {
-      all: dialogs.length,
-      group: dialogs.filter((d) => d.type === 'group' || d.type === 'megagroup').length,
-      channel: dialogs.filter((d) => d.type === 'channel').length,
+      all: groupsAndChannels.length,
+      group: groupsAndChannels.filter((d) => d.type === 'group' || d.type === 'megagroup').length,
+      channel: groupsAndChannels.filter((d) => d.type === 'channel').length,
     };
   }, [dialogs]);
 
@@ -147,6 +181,20 @@ export function GroupSelector() {
             {tab.label} ({tab.count})
           </button>
         ))}
+      </div>
+
+      {/* Sắp xếp theo */}
+      <div className="flex items-center gap-2 mb-4">
+        <ArrowUpDown className="w-4 h-4 text-gray-500" />
+        <span className="text-sm text-gray-400">Sắp xếp:</span>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="bg-surface-light border border-gray-600 text-white text-sm rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary cursor-pointer"
+        >
+          <option value="time">Thời gian</option>
+          <option value="unread">Số tin chưa đọc</option>
+        </select>
       </div>
 
       {/* Select all / Deselect all */}

@@ -8,7 +8,27 @@
 import { TelegramClient, Api } from 'telegram';
 import { StringSession } from 'telegram/sessions/index.js';
 import { NewMessage } from 'telegram/events/index.js';
-import type { TelegramDialog, TelegramMessage, AuthStatus } from '@tts-telegram/shared';
+
+// Types định nghĩa inline (tránh lỗi import từ shared package)
+export type AuthStatus = 'disconnected' | 'awaiting_phone' | 'awaiting_code' | 'awaiting_2fa' | 'connected';
+
+export interface TelegramDialog {
+  id: string;
+  title: string;
+  type: 'group' | 'channel' | 'user' | 'megagroup';
+  unreadCount: number;
+  lastMessage?: string;
+  lastMessageDate?: Date;
+}
+
+export interface TelegramMessage {
+  id: number;
+  dialogId: string;
+  text: string;
+  senderName?: string;
+  date: Date;
+  isOutgoing: boolean;
+}
 
 // Đọc credentials từ environment
 const APP_ID = parseInt(process.env.TELEGRAM_APP_ID || '0', 10);
