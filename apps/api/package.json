@@ -11,6 +11,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
+    "@google-cloud/text-to-speech": "^6.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
     "edge-tts-node": "^1.5.7",

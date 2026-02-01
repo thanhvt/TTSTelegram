@@ -4,17 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dynamic theme colors (từ CSS variables)
-        background: 'var(--color-background)',
-        surface: 'var(--color-surface)',
-        'surface-light': 'var(--color-surface-light)',
-        primary: 'var(--color-primary)',
-        'primary-light': 'var(--color-primary-light)',
-        secondary: 'var(--color-secondary)',
-        accent: 'var(--color-accent)',
-        success: 'var(--color-success)',
-        warning: 'var(--color-warning)',
-        error: 'var(--color-error)',
+        // Static fallback colors - actual theming done via CSS variables directly
+        background: '#0C1222',
+        surface: '#1A2744',
+        'surface-light': '#2D3F5F',
+        primary: '#0EA5E9',
+        'primary-light': '#38BDF8',
+        secondary: '#7DD3FC',
+        accent: '#F97316',
+        success: '#10b981',
+        warning: '#f59e0b',
+        error: '#ef4444',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

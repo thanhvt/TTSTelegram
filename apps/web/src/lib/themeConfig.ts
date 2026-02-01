@@ -122,6 +122,9 @@ export function applyTheme(themeId: ThemeType): void {
   const root = document.documentElement;
   const { colors } = theme;
 
+  // Set data-theme attribute để có thể dùng cho CSS selectors
+  root.setAttribute('data-theme', themeId);
+
   root.style.setProperty('--color-primary', colors.primary);
   root.style.setProperty('--color-primary-light', colors.primaryLight);
   root.style.setProperty('--color-secondary', colors.secondary);
@@ -133,6 +136,12 @@ export function applyTheme(themeId: ThemeType): void {
   root.style.setProperty('--color-success', colors.success);
   root.style.setProperty('--color-warning', colors.warning);
   root.style.setProperty('--color-error', colors.error);
+
+  // Force browser để re-apply CSS - trigger repaint
+  document.body.style.display = 'none';
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  document.body.offsetHeight; // Force reflow
+  document.body.style.display = '';
 
   console.log(`🎨 Theme đã áp dụng: ${theme.name}`);
 }

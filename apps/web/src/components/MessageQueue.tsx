@@ -4,8 +4,34 @@
  * @description Queue các tin nhắn đang chờ đọc
  */
 
-import { Trash2, MessageSquare, AlertCircle, Loader2 } from 'lucide-react';
+import { Trash2, MessageSquare, AlertCircle, Loader2, User, Clock } from 'lucide-react';
 import { useAppStore, QueueItem } from '../stores/appStore';
+
+/**
+ * Format ngày giờ tin nhắn
+ * @param date - ngày giờ của tin nhắn
+ * @returns chuỗi định dạng "dd/mm HH:mm" hoặc "Hôm nay HH:mm"
+ */
+function formatMessageDate(date: Date | string): string {
+  const d = new Date(date);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const messageDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  
+  const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  
+  if (messageDay.getTime() === today.getTime()) {
+    return `Hôm nay ${time}`;
+  }
+  
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (messageDay.getTime() === yesterday.getTime()) {
+    return `Hôm qua ${time}`;
+  }
+  
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')} ${time}`;
+}
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-gray-500/20 text-gray-400',
@@ -122,8 +148,20 @@ function QueueItemComponent({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Group name */}
-          <div className="text-xs text-gray-400 mb-1">{item.dialogTitle}</div>
+          {/* Group name + Người post + Thời gian */}
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="text-xs text-gray-400">{item.dialogTitle}</span>
+            <span className="text-gray-600">•</span>
+            <span className="text-xs text-primary/70 font-medium flex items-center gap-1">
+              <User className="w-3 h-3" />
+              {item.message.senderName || 'Unknown'}
+            </span>
+            <span className="text-gray-600">•</span>
+            <span className="text-xs text-gray-500 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {formatMessageDate(item.message.date)}
+            </span>
+          </div>
           {/* Message text */}
           <div className="text-sm text-white line-clamp-2">{item.message.text}</div>
           {/* Error message */}

@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Settings, X, Mic, Sparkles, Volume2, Palette } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { ttsApi } from '../lib/api';
@@ -89,38 +90,40 @@ export function TTSSettings() {
         <Settings className="w-5 h-5 text-gray-400 hover:text-white" />
       </button>
 
-      {/* Modal Overlay */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Modal Overlay - dùng Portal để render ở document.body, thoát khỏi header container */}
+      {isOpen && createPortal(
+        <div className="fixed inset-0 z-50 overflow-y-auto">
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
-
-          {/* Modal Content - đảm bảo center giữa màn hình */}
-          <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-light">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
-                  <Volume2 className="w-5 h-5 text-white" />
+          
+          {/* Centering wrapper */}
+          <div className="flex min-h-full items-center justify-center p-4">
+            {/* Modal Content - giới hạn 70vh để luôn fit màn hình */}
+            <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md max-h-[70vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              {/* Header - fixed */}
+              <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-surface-light">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+                    <Volume2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Cài đặt TTS</h2>
+                    <p className="text-xs text-gray-400">Tùy chỉnh giọng đọc</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Cài đặt TTS</h2>
-                  <p className="text-xs text-gray-400">Tùy chỉnh giọng đọc</p>
-                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 rounded-lg hover:bg-surface-light transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-2 rounded-lg hover:bg-surface-light transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
 
-            {/* Body - scrollable nếu nội dung dài */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              {/* Body - scrollable */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               {/* Provider Selection */}
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
@@ -269,18 +272,20 @@ export function TTSSettings() {
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-surface-light bg-surface-light/30">
-              <div className="text-xs text-gray-500 text-center">
-                {ttsProvider === 'openai' 
-                  ? '💡 OpenAI TTS có phí ~$0.015/1000 ký tự'
-                  : '💡 Google TTS miễn phí và ổn định'}
+              
+              {/* Footer note inside scrollable area */}
+              <div className="mt-4 pt-4 border-t border-surface-light/50">
+                <div className="text-xs text-gray-500 text-center">
+                  {ttsProvider === 'openai' 
+                    ? '💡 OpenAI TTS có phí ~$0.015/1000 ký tự'
+                    : '💡 Google TTS miễn phí và ổn định'}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

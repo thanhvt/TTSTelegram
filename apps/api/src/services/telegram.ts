@@ -198,10 +198,21 @@ class TelegramService {
     return dialogs.map((dialog) => {
       let type: TelegramDialog['type'] = 'user';
 
-      if (dialog.isChannel) {
-        type = 'channel';
+      // Phân biệt chính xác giữa Channel, Megagroup/Supergroup và Group
+      // - Channel class có thể là broadcast channel hoặc megagroup/supergroup
+      // - Sử dụng flag megagroup/gigagroup để phân biệt
+      if (dialog.entity?.className === 'Channel') {
+        const channel = dialog.entity as Api.Channel;
+        if (channel.megagroup || channel.gigagroup) {
+          // Megagroup (supergroup) hoặc Gigagroup (nhóm > 200k thành viên)
+          type = 'megagroup';
+        } else {
+          // Broadcast channel thuần túy  
+          type = 'channel';
+        }
       } else if (dialog.isGroup) {
-        type = dialog.entity?.className === 'Channel' ? 'megagroup' : 'group';
+        // Basic group (nhóm nhỏ dưới 200 thành viên, chưa upgrade lên supergroup)
+        type = 'group';
       }
 
       return {

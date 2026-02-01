@@ -68,31 +68,85 @@
   .btn {
     @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 
            disabled:opacity-50 disabled:cursor-not-allowed
-           focus:outline-none focus:ring-2 focus:ring-primary/50;
+           focus:outline-none focus:ring-2;
+    --tw-ring-color: var(--color-primary);
   }
 
   .btn-primary {
-    @apply btn bg-primary hover:bg-primary-light text-white;
+    @apply btn text-white;
+    background-color: var(--color-primary);
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--color-primary-light);
   }
 
   .btn-secondary {
-    @apply btn bg-surface hover:bg-surface-light text-white border border-surface-light;
+    @apply btn text-white;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-surface-light);
+  }
+  
+  .btn-secondary:hover {
+    background-color: var(--color-surface-light);
   }
 
   .btn-ghost {
-    @apply btn bg-transparent hover:bg-surface-light text-white;
+    @apply btn bg-transparent text-white;
+  }
+  
+  .btn-ghost:hover {
+    background-color: var(--color-surface-light);
   }
 
   .card {
-    @apply bg-surface rounded-xl border border-surface-light/50 p-4;
+    @apply rounded-xl p-4;
+    background-color: var(--color-surface);
+    border: 1px solid color-mix(in srgb, var(--color-surface-light) 50%, transparent);
   }
 
   .input {
-    @apply w-full px-4 py-3 bg-surface border border-surface-light rounded-lg
-           text-white placeholder:text-gray-500
-           focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary;
+    @apply w-full px-4 py-3 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-surface-light);
+    color: var(--color-text);
+  }
+  
+  .input:focus {
+    border-color: var(--color-primary);
+    --tw-ring-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
   }
 }
+
+/* Theme-aware background utilities */
+.bg-background { background-color: var(--color-background) !important; }
+.bg-surface { background-color: var(--color-surface) !important; }
+.bg-surface-light { background-color: var(--color-surface-light) !important; }
+.bg-primary { background-color: var(--color-primary) !important; }
+.bg-primary-light { background-color: var(--color-primary-light) !important; }
+.bg-secondary { background-color: var(--color-secondary) !important; }
+.bg-accent { background-color: var(--color-accent) !important; }
+.bg-success { background-color: var(--color-success) !important; }
+.bg-warning { background-color: var(--color-warning) !important; }
+.bg-error { background-color: var(--color-error) !important; }
+
+/* Theme-aware text utilities */
+.text-primary { color: var(--color-primary) !important; }
+.text-primary-light { color: var(--color-primary-light) !important; }
+.text-secondary { color: var(--color-secondary) !important; }
+.text-accent { color: var(--color-accent) !important; }
+.text-success { color: var(--color-success) !important; }
+.text-warning { color: var(--color-warning) !important; }
+.text-error { color: var(--color-error) !important; }
+
+/* Theme-aware border utilities */
+.border-primary { border-color: var(--color-primary) !important; }
+.border-surface { border-color: var(--color-surface) !important; }
+.border-surface-light { border-color: var(--color-surface-light) !important; }
+
+/* Theme-aware gradients */
+.from-primary { --tw-gradient-from: var(--color-primary) var(--tw-gradient-from-position) !important; }
+.to-accent { --tw-gradient-to: var(--color-accent) var(--tw-gradient-to-position) !important; }
 
 /* Animation utilities */
 @layer utilities {

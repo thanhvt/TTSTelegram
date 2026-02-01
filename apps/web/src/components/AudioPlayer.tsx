@@ -19,11 +19,39 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 
 /**
  * Format thời gian thành mm:ss
+ * @param seconds - số giây
+ * @returns chuỗi định dạng mm:ss
  */
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Format ngày giờ tin nhắn
+ * @param date - ngày giờ của tin nhắn
+ * @returns chuỗi định dạng "dd/mm HH:mm" hoặc "Hôm nay HH:mm"
+ */
+function formatMessageDate(date: Date | string): string {
+  const d = new Date(date);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const messageDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  
+  const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  
+  if (messageDay.getTime() === today.getTime()) {
+    return `Hôm nay ${time}`;
+  }
+  
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (messageDay.getTime() === yesterday.getTime()) {
+    return `Hôm qua ${time}`;
+  }
+  
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')} ${time}`;
 }
 
 export function AudioPlayer() {
@@ -87,6 +115,16 @@ export function AudioPlayer() {
             <div className="font-medium text-white truncate">
               {currentItem?.dialogTitle || 'Unknown'}
             </div>
+            {/* Thông tin người post và thời gian */}
+            {currentItem && (
+              <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                <span className="text-primary/80 font-medium">
+                  {currentItem.message.senderName || 'Unknown'}
+                </span>
+                <span>•</span>
+                <span>{formatMessageDate(currentItem.message.date)}</span>
+              </div>
+            )}
           </div>
 
           {/* Status Badge */}
