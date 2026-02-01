@@ -24,7 +24,6 @@ export default function App() {
     dialogs,
     addToQueue,
     clearQueue,
-    queue,
   } = useAppStore();
 
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -53,6 +52,7 @@ export default function App() {
 
   /**
    * Lấy tin nhắn và thêm vào queue
+   * Sử dụng unreadCount của mỗi group làm limit để chỉ lấy tin nhắn chưa đọc
    */
   const handleStartReading = async () => {
     if (selectedDialogIds.length === 0) {
@@ -64,13 +64,31 @@ export default function App() {
     clearQueue();
 
     try {
-      // Lấy messages từ các groups đã chọn
-      const messagesData = await messagesApi.getBatchMessages(selectedDialogIds, 50);
+      // Xác định limit dựa trên unreadCount của mỗi dialog
+      const dialogLimits = selectedDialogIds.map(id => {
+        const dialog = dialogs.find(d => d.id === id);
+        // Sử dụng unreadCount, tối thiểu 1, tối đa 100
+        return Math.min(Math.max(dialog?.unreadCount || 10, 1), 100);
+      });
 
-      // Chuyển đổi thành queue items
+      // Tính tổng limit (để log)
+      const totalUnread = dialogLimits.reduce((sum, l) => sum + l, 0);
+      console.log(`📱 Đang lấy ${totalUnread} tin nhắn chưa đọc từ ${selectedDialogIds.length} groups`);
+
+      // Lấy messages từ các groups đã chọn
+      // Sử dụng max của các limits làm batch limit (API sẽ giới hạn)
+      const maxLimit = Math.max(...dialogLimits);
+      const messagesData = await messagesApi.getBatchMessages(selectedDialogIds, maxLimit);
+
+      // Chuyển đổi thành queue items, lọc theo unreadCount
       const queueItems = Object.entries(messagesData).flatMap(([dialogId, messages]) => {
         const dialog = dialogs.find((d) => d.id === dialogId);
-        return messages.map((msg) => ({
+        const unreadLimit = dialog?.unreadCount || messages.length;
+        
+        // Chỉ lấy số tin nhắn bằng unreadCount (tin mới nhất)
+        const limitedMessages = messages.slice(0, unreadLimit);
+        
+        return limitedMessages.map((msg) => ({
           id: `${dialogId}-${msg.id}`,
           message: {
             id: msg.id,
@@ -88,6 +106,7 @@ export default function App() {
       // Sắp xếp theo thời gian (mới nhất trước)
       queueItems.sort((a, b) => b.message.date.getTime() - a.message.date.getTime());
 
+      console.log(`📋 Queue: ${queueItems.length} tin nhắn`);
       addToQueue(queueItems);
     } catch (error) {
       console.error('Lỗi lấy messages:', error);

@@ -45,6 +45,7 @@ export function useAudioPlayer() {
 
       const howl = new Howl({
         src: [audioUrl],
+        format: ['mp3'], // Chỉ định format để Howler.js nhận diện đúng
         html5: true,
         volume: volume,
         rate: playbackRate,
@@ -73,6 +74,7 @@ export function useAudioPlayer() {
           if (currentItem) {
             updateQueueItem(currentItem.id, { status: 'completed' });
           }
+          // Tự động chuyển sang item tiếp theo
           nextInQueue();
         },
         onloaderror: (_id, error) => {
@@ -81,6 +83,8 @@ export function useAudioPlayer() {
           if (currentItem) {
             updateQueueItem(currentItem.id, { status: 'error', error: 'Không thể load audio' });
           }
+          // Khi lỗi, tự động chuyển sang item tiếp theo
+          nextInQueue();
         },
       });
 
@@ -202,13 +206,22 @@ export function useAudioPlayer() {
     }
   }, [playbackRate]);
 
-  // Auto-play khi chuyển sang item mới có sẵn audio
+  // Auto-play khi chuyển sang item mới: tự động generate và phát
   useEffect(() => {
-    if (currentItem?.status === 'ready' && currentItem.audioUrl) {
+    if (!currentItem) return;
+    
+    // Nếu item đã có audio, phát luôn
+    if (currentItem.audioUrl && currentItem.status === 'ready') {
       playAudio(currentItem.audioUrl);
       updateQueueItem(currentItem.id, { status: 'playing' });
+      return;
     }
-  }, [currentQueueIndex]);
+    
+    // Nếu item chưa có audio và chưa generating, tự động generate
+    if (currentItem.status === 'pending') {
+      generateAndPlay();
+    }
+  }, [currentQueueIndex, currentItem?.id]);
 
   // Cleanup
   useEffect(() => {

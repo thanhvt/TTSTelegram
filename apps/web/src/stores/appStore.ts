@@ -161,6 +161,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tts-telegram-storage',
+      version: 1, // Tăng version để migrate từ Edge TTS sang Google TTS
       partialize: (state) => ({
         selectedDialogIds: state.selectedDialogIds,
         volume: state.volume,
@@ -168,6 +169,17 @@ export const useAppStore = create<AppState>()(
         selectedVoice: state.selectedVoice,
         randomVoice: state.randomVoice,
       }),
+      // Migrate từ Edge TTS voice format sang Google TTS
+      migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as Partial<AppState>;
+        if (version === 0) {
+          // Migrate voice từ Edge TTS format (vi-VN-HoaiMyNeural) sang Google TTS (vi)
+          if (state.selectedVoice && state.selectedVoice.includes('-VN-')) {
+            state.selectedVoice = 'vi';
+          }
+        }
+        return state;
+      },
     }
   )
 );
