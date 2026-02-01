@@ -103,8 +103,8 @@ export default function App() {
         }));
       });
 
-      // Sắp xếp theo thời gian (mới nhất trước)
-      queueItems.sort((a, b) => b.message.date.getTime() - a.message.date.getTime());
+      // Sắp xếp theo thời gian (cũ nhất trước)
+      queueItems.sort((a, b) => a.message.date.getTime() - b.message.date.getTime());
 
       console.log(`📋 Queue: ${queueItems.length} tin nhắn`);
       addToQueue(queueItems);
