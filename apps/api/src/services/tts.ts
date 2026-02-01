@@ -1,21 +1,27 @@
 /**
- * TTS Service - Text-to-Speech sử dụng Google TTS
+ * TTS Service - Text-to-Speech với đa nhà cung cấp
  *
- * @description Chuyển đổi text thành audio sử dụng Google TTS (miễn phí)
+ * @description Hỗ trợ Google TTS (miễn phí) và OpenAI TTS (có phí, chất lượng cao)
  * @usage Được sử dụng bởi route /api/tts
  *
- * Note: Edge TTS bị Microsoft chặn từ 2025 qua anti-abuse tokens (Sec-MS-GEC).
- * Chi tiết: Microsoft yêu cầu token ngắn hạn chỉ có thể lấy từ trình duyệt Edge chính hãng,
- * các ứng dụng bên ngoài sẽ nhận lỗi 403 Forbidden.
+ * Providers:
+ * - Google TTS: Miễn phí, sử dụng node-gtts
+ * - OpenAI TTS: $0.015/1000 chars, sử dụng openai SDK với models tts-1/tts-1-hd
  */
 
 // @ts-ignore - node-gtts không có type declarations
 import gTTS from 'node-gtts';
+import OpenAI from 'openai';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-// Types định nghĩa inline
+// ============================================
+// TYPES
+// ============================================
+
+export type TTSProvider = 'google' | 'openai';
+
 export interface TTSVoice {
   id: string;
   name: string;
@@ -23,12 +29,14 @@ export interface TTSVoice {
   gender: 'Male' | 'Female' | 'Neutral';
   locale: string;
   description?: string;
+  provider: TTSProvider;
 }
 
 export interface TTSSynthesizeRequest {
   text: string;
+  provider?: TTSProvider;
   voice?: string;
-  randomVoice?: boolean; // Chế độ ngẫu nhiên giọng đọc
+  randomVoice?: boolean;
   rate?: number;
   volume?: number;
   pitch?: number;
@@ -39,19 +47,20 @@ export interface TTSSynthesizeResponse {
   audioUrl: string;
   duration: number;
   text: string;
-  voiceUsed?: string; // Giọng đọc đã sử dụng
+  voiceUsed?: string;
+  providerUsed?: TTSProvider;
 }
 
-// Thư mục cache audio
+// ============================================
+// CONSTANTS
+// ============================================
+
 const AUDIO_CACHE_DIR = path.join(process.cwd(), 'audio-cache');
 
 /**
- * Danh sách giọng đọc hỗ trợ
- * Google TTS hỗ trợ nhiều ngôn ngữ với các accent khác nhau
- * Để tạo đa dạng, ta sử dụng các accent tiếng Anh khác nhau kết hợp với tiếng Việt
+ * Danh sách giọng Google TTS
  */
-const AVAILABLE_VOICES: TTSVoice[] = [
-  // Tiếng Việt
+const GOOGLE_VOICES: TTSVoice[] = [
   {
     id: 'vi',
     name: 'Tiếng Việt',
@@ -59,15 +68,16 @@ const AVAILABLE_VOICES: TTSVoice[] = [
     gender: 'Female',
     locale: 'vi-VN',
     description: 'Giọng nữ tiếng Việt chuẩn',
+    provider: 'google',
   },
-  // Tiếng Anh - các accent khác nhau (có thể dùng cho đa dạng)
   {
     id: 'en-us',
     name: 'English (US)',
     shortName: 'en-us',
     gender: 'Female',
     locale: 'en-US',
-    description: 'Giọng Mỹ - dùng cho reading practice',
+    description: 'Giọng Mỹ',
+    provider: 'google',
   },
   {
     id: 'en-uk',
@@ -75,7 +85,8 @@ const AVAILABLE_VOICES: TTSVoice[] = [
     shortName: 'en-uk',
     gender: 'Female',
     locale: 'en-GB',
-    description: 'Giọng Anh - formal hơn',
+    description: 'Giọng Anh',
+    provider: 'google',
   },
   {
     id: 'en-au',
@@ -83,23 +94,98 @@ const AVAILABLE_VOICES: TTSVoice[] = [
     shortName: 'en-au',
     gender: 'Female',
     locale: 'en-AU',
-    description: 'Giọng Úc - độc đáo',
+    description: 'Giọng Úc',
+    provider: 'google',
   },
 ];
 
-// Chỉ lấy voices tiếng Việt để hiển thị mặc định
-const VIETNAMESE_VOICES = AVAILABLE_VOICES.filter((v) => v.locale.startsWith('vi'));
-
 /**
- * Service quản lý Text-to-Speech với Google TTS
- * Hỗ trợ chọn giọng đọc và chế độ ngẫu nhiên
+ * Danh sách giọng OpenAI TTS
+ * Hỗ trợ đa ngôn ngữ (bao gồm tiếng Việt)
  */
+const OPENAI_VOICES: TTSVoice[] = [
+  {
+    id: 'alloy',
+    name: 'Alloy',
+    shortName: 'alloy',
+    gender: 'Neutral',
+    locale: 'multi',
+    description: 'Cân bằng, trung tính',
+    provider: 'openai',
+  },
+  {
+    id: 'echo',
+    name: 'Echo',
+    shortName: 'echo',
+    gender: 'Male',
+    locale: 'multi',
+    description: 'Ấm áp, trầm',
+    provider: 'openai',
+  },
+  {
+    id: 'fable',
+    name: 'Fable',
+    shortName: 'fable',
+    gender: 'Neutral',
+    locale: 'multi',
+    description: 'Biểu cảm, British',
+    provider: 'openai',
+  },
+  {
+    id: 'onyx',
+    name: 'Onyx',
+    shortName: 'onyx',
+    gender: 'Male',
+    locale: 'multi',
+    description: 'Sâu, quyền lực',
+    provider: 'openai',
+  },
+  {
+    id: 'nova',
+    name: 'Nova',
+    shortName: 'nova',
+    gender: 'Female',
+    locale: 'multi',
+    description: 'Thân thiện, nữ tính',
+    provider: 'openai',
+  },
+  {
+    id: 'shimmer',
+    name: 'Shimmer',
+    shortName: 'shimmer',
+    gender: 'Female',
+    locale: 'multi',
+    description: 'Rõ ràng, lạc quan',
+    provider: 'openai',
+  },
+];
+
+// ============================================
+// TTS SERVICE
+// ============================================
+
 class TTSService {
-  private defaultVoice = 'vi';
-  private allVoices = AVAILABLE_VOICES;
+  private openaiClient: OpenAI | null = null;
+  private defaultProvider: TTSProvider = 'google';
+  private defaultGoogleVoice = 'vi';
+  private defaultOpenAIVoice = 'nova';
 
   constructor() {
     this.ensureCacheDir();
+    this.initOpenAI();
+  }
+
+  /**
+   * Khởi tạo OpenAI client nếu có API key
+   */
+  private initOpenAI(): void {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey) {
+      this.openaiClient = new OpenAI({ apiKey });
+      console.log('✅ TTS: OpenAI đã khởi tạo');
+    } else {
+      console.log('⚠️ TTS: Không có OPENAI_API_KEY - OpenAI TTS bị tắt');
+    }
   }
 
   /**
@@ -108,67 +194,124 @@ class TTSService {
   private async ensureCacheDir(): Promise<void> {
     try {
       await fs.mkdir(AUDIO_CACHE_DIR, { recursive: true });
-      console.log('📁 TTS: Thư mục cache:', AUDIO_CACHE_DIR);
+      console.log('📁 TTS: Cache:', AUDIO_CACHE_DIR);
     } catch (error) {
-      console.error('❌ TTS: Không thể tạo thư mục cache:', error);
+      console.error('❌ TTS: Không thể tạo cache dir:', error);
     }
   }
 
   /**
-   * Lấy danh sách giọng đọc tiếng Việt (mặc định)
-   *
-   * @returns TTSVoice[] - Danh sách voices tiếng Việt
+   * Lấy danh sách voices theo provider
+   */
+  getVoicesByProvider(provider: TTSProvider): TTSVoice[] {
+    return provider === 'openai' ? OPENAI_VOICES : GOOGLE_VOICES;
+  }
+
+  /**
+   * Lấy tất cả voices
+   */
+  getAllVoices(): TTSVoice[] {
+    return [...GOOGLE_VOICES, ...(this.openaiClient ? OPENAI_VOICES : [])];
+  }
+
+  /**
+   * Lấy voices tiếng Việt (tương thích cũ)
    */
   getVietnameseVoices(): TTSVoice[] {
-    return VIETNAMESE_VOICES;
+    return GOOGLE_VOICES.filter((v) => v.locale.startsWith('vi'));
   }
 
   /**
-   * Lấy tất cả voices có sẵn
-   *
-   * @returns Promise<TTSVoice[]>
+   * Kiểm tra OpenAI có khả dụng không
    */
-  async getAllVoices(): Promise<TTSVoice[]> {
-    return this.allVoices;
+  isOpenAIAvailable(): boolean {
+    return this.openaiClient !== null;
   }
 
   /**
-   * Chọn giọng ngẫu nhiên từ danh sách
-   *
-   * @param voiceIds - Danh sách voice IDs để chọn (mặc định: tất cả)
-   * @returns TTSVoice - Giọng được chọn ngẫu nhiên
+   * Chọn voice ngẫu nhiên
    */
-  getRandomVoice(voiceIds?: string[]): TTSVoice {
-    const voicePool = voiceIds
-      ? this.allVoices.filter((v) => voiceIds.includes(v.id))
-      : this.allVoices;
-
-    const randomIndex = Math.floor(Math.random() * voicePool.length);
-    return voicePool[randomIndex] || this.allVoices[0];
+  getRandomVoice(provider: TTSProvider): TTSVoice {
+    const voices = this.getVoicesByProvider(provider);
+    const index = Math.floor(Math.random() * voices.length);
+    return voices[index];
   }
 
   /**
-   * Tạo audio từ text sử dụng Google TTS
+   * Synthesize với Google TTS
+   */
+  private async synthesizeWithGoogle(
+    text: string,
+    voice: string,
+    id: string,
+    filepath: string
+  ): Promise<void> {
+    const gtts = gTTS(voice);
+    await new Promise<void>((resolve, reject) => {
+      gtts.save(filepath, text, (err?: Error) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+
+  /**
+   * Synthesize với OpenAI TTS
+   */
+  private async synthesizeWithOpenAI(
+    text: string,
+    voice: string,
+    id: string,
+    filepath: string
+  ): Promise<void> {
+    if (!this.openaiClient) {
+      throw new Error('OpenAI TTS không khả dụng - thiếu API key');
+    }
+
+    const response = await this.openaiClient.audio.speech.create({
+      model: 'tts-1',
+      voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
+      input: text,
+    });
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await fs.writeFile(filepath, buffer);
+  }
+
+  /**
+   * Tạo audio từ text
    *
-   * @param request - Yêu cầu synthesize
-   * @returns Promise<TTSSynthesizeResponse> - Kết quả với audio URL
+   * @param request - Yêu cầu synthesize với provider, voice, randomVoice
+   * @returns Promise<TTSSynthesizeResponse>
    */
   async synthesize(request: TTSSynthesizeRequest): Promise<TTSSynthesizeResponse> {
-    let { voice = this.defaultVoice } = request;
     const { text, randomVoice = false } = request;
+    let provider = request.provider || this.defaultProvider;
+    let voice = request.voice;
 
     if (!text || text.trim().length === 0) {
       throw new Error('Text không được để trống');
     }
 
-    // Nếu random voice được bật, chọn giọng ngẫu nhiên
-    if (randomVoice) {
-      const randomVoiceObj = this.getRandomVoice();
-      voice = randomVoiceObj.shortName;
-      console.log(`🎲 TTS: Random voice: ${randomVoiceObj.name} (${voice})`);
+    // Fallback nếu OpenAI không khả dụng
+    if (provider === 'openai' && !this.openaiClient) {
+      console.log('⚠️ TTS: Fallback từ OpenAI sang Google');
+      provider = 'google';
     }
 
-    // Giới hạn độ dài text để tránh timeout
+    // Random voice nếu được bật
+    if (randomVoice) {
+      const randomVoiceObj = this.getRandomVoice(provider);
+      voice = randomVoiceObj.shortName;
+      console.log(`🎲 TTS: Random voice: ${randomVoiceObj.name} (${provider})`);
+    }
+
+    // Default voice theo provider
+    if (!voice) {
+      voice = provider === 'openai' ? this.defaultOpenAIVoice : this.defaultGoogleVoice;
+    }
+
+    // Giới hạn text
     const maxLength = 5000;
     const truncatedText = text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 
@@ -177,25 +320,19 @@ class TTSService {
     const filepath = path.join(AUDIO_CACHE_DIR, filename);
 
     try {
-      // Sử dụng Google TTS với voice được chọn
-      const gtts = gTTS(voice);
+      console.log(`🔊 TTS: Synthesizing với ${provider}, voice: ${voice}`);
 
-      // Wrap callback API thành Promise
-      await new Promise<void>((resolve, reject) => {
-        gtts.save(filepath, truncatedText, (err?: Error) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
+      if (provider === 'openai') {
+        await this.synthesizeWithOpenAI(truncatedText, voice, id, filepath);
+      } else {
+        await this.synthesizeWithGoogle(truncatedText, voice, id, filepath);
+      }
 
-      // Ước tính duration (khoảng 150 từ/phút cho tiếng Việt)
+      // Ước tính duration
       const wordCount = truncatedText.split(/\s+/).length;
       const estimatedDuration = Math.max(1, Math.ceil((wordCount / 150) * 60));
 
-      console.log(`🔊 TTS: Đã tạo audio ${filename} (voice: ${voice}, ${wordCount} từ, ~${estimatedDuration}s)`);
+      console.log(`✅ TTS: ${filename} (${provider}/${voice}, ${wordCount} từ)`);
 
       return {
         id,
@@ -203,22 +340,19 @@ class TTSService {
         duration: estimatedDuration,
         text: truncatedText,
         voiceUsed: voice,
+        providerUsed: provider,
       };
     } catch (error) {
       console.error('❌ TTS: Lỗi synthesize:', error);
-      throw new Error(`Không thể tạo audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Không thể tạo audio: ${error instanceof Error ? error.message : 'Unknown'}`);
     }
   }
 
   /**
    * Lấy đường dẫn file audio
-   *
-   * @param id - ID của audio
-   * @returns string | null - Đường dẫn file hoặc null nếu không tồn tại
    */
   async getAudioPath(id: string): Promise<string | null> {
     const filepath = path.join(AUDIO_CACHE_DIR, `${id}.mp3`);
-
     try {
       await fs.access(filepath);
       return filepath;
@@ -229,39 +363,33 @@ class TTSService {
 
   /**
    * Xóa audio đã tạo
-   *
-   * @param id - ID của audio
    */
   async deleteAudio(id: string): Promise<void> {
     const filepath = path.join(AUDIO_CACHE_DIR, `${id}.mp3`);
-
     try {
       await fs.unlink(filepath);
       console.log(`🗑️ TTS: Đã xóa ${id}.mp3`);
     } catch {
-      // File không tồn tại - bỏ qua
+      // Ignore
     }
   }
 
   /**
-   * Xóa tất cả audio cache
+   * Xóa tất cả cache
    */
   async clearCache(): Promise<void> {
     try {
       const files = await fs.readdir(AUDIO_CACHE_DIR);
-
       for (const file of files) {
         if (file.endsWith('.mp3')) {
           await fs.unlink(path.join(AUDIO_CACHE_DIR, file));
         }
       }
-
-      console.log(`🧹 TTS: Đã xóa ${files.length} files cache`);
+      console.log(`🧹 TTS: Đã xóa ${files.length} files`);
     } catch (error) {
       console.error('❌ TTS: Lỗi xóa cache:', error);
     }
   }
 }
 
-// Export singleton instance
 export const ttsService = new TTSService();

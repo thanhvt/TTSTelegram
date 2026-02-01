@@ -145,6 +145,8 @@ export const messagesApi = {
 // TTS API
 // ============================================
 
+export type TTSProvider = 'google' | 'openai';
+
 export interface TTSVoice {
   id: string;
   name: string;
@@ -152,6 +154,7 @@ export interface TTSVoice {
   gender: 'Male' | 'Female' | 'Neutral';
   locale: string;
   description?: string;
+  provider: TTSProvider;
 }
 
 export interface TTSResult {
@@ -159,11 +162,13 @@ export interface TTSResult {
   audioUrl: string;
   duration: number;
   text: string;
-  voiceUsed?: string; // Giọng đọc đã sử dụng
+  voiceUsed?: string;
+  providerUsed?: TTSProvider;
 }
 
 export interface TTSSynthesizeOptions {
   text: string;
+  provider?: TTSProvider;
   voice?: string;
   randomVoice?: boolean;
   rate?: number;
@@ -171,15 +176,17 @@ export interface TTSSynthesizeOptions {
 
 export const ttsApi = {
   /**
-   * Lấy danh sách giọng đọc
+   * Lấy danh sách giọng đọc và trạng thái OpenAI
    */
-  getVoices: (locale = 'vi-VN') =>
-    fetchApi<TTSVoice[]>(`/tts/voices?locale=${locale}`),
+  getVoices: (provider?: TTSProvider) =>
+    fetchApi<{ voices: TTSVoice[]; openaiAvailable: boolean }>(
+      provider ? `/tts/voices?provider=${provider}` : '/tts/voices'
+    ),
 
   /**
    * Tạo audio từ text
    *
-   * @param options - Options bao gồm text, voice, randomVoice, rate
+   * @param options - Options bao gồm text, provider, voice, randomVoice, rate
    */
   synthesize: (options: TTSSynthesizeOptions) =>
     fetchApi<TTSResult>('/tts/synthesize', {
@@ -190,10 +197,10 @@ export const ttsApi = {
   /**
    * Tạo audio cho nhiều tin nhắn
    */
-  synthesizeBatch: (messages: Array<{ id: string; text: string }>, voice?: string) =>
+  synthesizeBatch: (messages: Array<{ id: string; text: string }>, voice?: string, provider?: TTSProvider) =>
     fetchApi<TTSResult[]>('/tts/synthesize-batch', {
       method: 'POST',
-      body: JSON.stringify({ messages, voice }),
+      body: JSON.stringify({ messages, voice, provider }),
     }),
 
   /**
@@ -209,3 +216,4 @@ export const ttsApi = {
       method: 'DELETE',
     }),
 };
+

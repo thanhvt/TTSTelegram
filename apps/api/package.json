@@ -17,6 +17,7 @@
     "express": "^4.21.0",
     "input": "^1.0.1",
     "node-gtts": "^2.0.2",
+    "openai": "^6.17.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "telegram": "^2.26.0",

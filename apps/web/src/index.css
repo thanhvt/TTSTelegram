@@ -2,10 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Default theme variables (Ocean Calm) */
+:root {
+  --color-primary: #0EA5E9;
+  --color-primary-light: #38BDF8;
+  --color-secondary: #7DD3FC;
+  --color-accent: #F97316;
+  --color-background: #0C1222;
+  --color-surface: #1A2744;
+  --color-surface-light: #2D3F5F;
+  --color-text: #F0F9FF;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
 /* Custom base styles */
 @layer base {
   body {
-    @apply bg-background text-white antialiased;
+    @apply bg-background antialiased;
+    color: var(--color-text);
     font-family: 'Inter', system-ui, sans-serif;
   }
 

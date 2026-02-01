@@ -42,6 +42,12 @@ export type AuthStatus =
   | 'awaiting_2fa'
   | 'connected';
 
+/**
+ * Theme type - các bảng màu có sẵn
+ * @description 4 bảng màu: Midnight Audio, Fintech Trust, Terminal Green, Ocean Calm
+ */
+export type ThemeType = 'midnight-audio' | 'fintech-trust' | 'terminal-green' | 'ocean-calm';
+
 interface AppState {
   // Auth
   authStatus: AuthStatus;
@@ -79,10 +85,14 @@ interface AppState {
   setPlaybackRate: (rate: number) => void;
 
   // Settings
+  ttsProvider: 'google' | 'openai';
   selectedVoice: string;
-  randomVoice: boolean; // Chế độ ngẫu nhiên giọng đọc
+  randomVoice: boolean;
+  theme: ThemeType;
+  setTtsProvider: (provider: 'google' | 'openai') => void;
   setSelectedVoice: (voice: string) => void;
   setRandomVoice: (enabled: boolean) => void;
+  setTheme: (theme: ThemeType) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -154,29 +164,49 @@ export const useAppStore = create<AppState>()(
       setPlaybackRate: (rate) => set({ playbackRate: rate }),
 
       // Settings
-      selectedVoice: 'vi', // Google TTS Vietnamese
-      randomVoice: false, // Chế độ ngẫu nhiên giọng đọc
+      ttsProvider: 'google' as const,
+      selectedVoice: 'vi',
+      randomVoice: false,
+      setTtsProvider: (provider) => set({ 
+        ttsProvider: provider,
+        // Reset voice to default khi đổi provider
+        selectedVoice: provider === 'openai' ? 'nova' : 'vi'
+      }),
       setSelectedVoice: (voice) => set({ selectedVoice: voice }),
       setRandomVoice: (enabled) => set({ randomVoice: enabled }),
+      
+      // Theme
+      theme: 'ocean-calm' as ThemeType,
+      setTheme: (theme) => set({ theme }),
     }),
     {
       name: 'tts-telegram-storage',
-      version: 1, // Tăng version để migrate từ Edge TTS sang Google TTS
+      version: 3, // Tăng version để thêm theme
       partialize: (state) => ({
         selectedDialogIds: state.selectedDialogIds,
         volume: state.volume,
         playbackRate: state.playbackRate,
+        ttsProvider: state.ttsProvider,
         selectedVoice: state.selectedVoice,
         randomVoice: state.randomVoice,
+        theme: state.theme,
       }),
-      // Migrate từ Edge TTS voice format sang Google TTS
+      // Migrate từ version cũ
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<AppState>;
-        if (version === 0) {
-          // Migrate voice từ Edge TTS format (vi-VN-HoaiMyNeural) sang Google TTS (vi)
+        if (version < 1) {
+          // Migrate voice từ Edge TTS format sang Google TTS
           if (state.selectedVoice && state.selectedVoice.includes('-VN-')) {
             state.selectedVoice = 'vi';
           }
+        }
+        if (version < 2) {
+          // Thêm ttsProvider mặc định
+          state.ttsProvider = 'google';
+        }
+        if (version < 3) {
+          // Thêm theme mặc định
+          state.theme = 'ocean-calm';
         }
         return state;
       },

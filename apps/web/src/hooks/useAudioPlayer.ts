@@ -34,6 +34,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
     currentQueueIndex,
     updateQueueItem,
     nextInQueue,
+    ttsProvider,
     selectedVoice,
     randomVoice,
   } = useAppStore();
@@ -134,14 +135,15 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
 
       const result = await ttsApi.synthesize({
         text: currentItem.message.text,
+        provider: ttsProvider,
         voice: selectedVoice,
         randomVoice: randomVoice,
       });
       const audioUrl = ttsApi.getStreamUrl(result.id);
 
-      // Log voice được sử dụng nếu random mode
-      if (randomVoice && result.voiceUsed) {
-        console.log(`🎲 Giọng ngẫu nhiên: ${result.voiceUsed}`);
+      // Log provider và voice được sử dụng
+      if (result.voiceUsed) {
+        console.log(`🔊 TTS: ${result.providerUsed}/${result.voiceUsed}`);
       }
 
       updateQueueItem(currentItem.id, { audioUrl, status: 'ready' });

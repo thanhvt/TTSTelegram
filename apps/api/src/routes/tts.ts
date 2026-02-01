@@ -11,15 +11,23 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { ttsService } from '../services/tts.js';
-import type { ApiResponse, TTSVoice, TTSSynthesizeResponse } from '@tts-telegram/shared';
+import { ttsService, type TTSVoice, type TTSSynthesizeResponse, type TTSProvider } from '../services/tts.js';
 
-const router = Router();
+// Type local để không phụ thuộc @tts-telegram/shared
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+const router: Router = Router();
 
 // Validation schema
 const synthesizeSchema = z.object({
   text: z.string().min(1).max(5000),
+  provider: z.enum(['google', 'openai']).optional(),
   voice: z.string().optional(),
+  randomVoice: z.boolean().optional(),
   rate: z.number().min(-50).max(100).optional(),
   volume: z.number().min(-50).max(50).optional(),
   pitch: z.number().min(-50).max(50).optional(),
@@ -29,28 +37,25 @@ const synthesizeSchema = z.object({
  * GET /api/tts/voices
  * Lấy danh sách giọng đọc khả dụng
  *
- * @query locale - Lọc theo locale (vd: vi-VN)
+ * @query provider - Filter theo provider (google/openai)
  */
-router.get('/voices', async (req: Request, res: Response<ApiResponse<TTSVoice[]>>) => {
+router.get('/voices', async (req: Request, res: Response<ApiResponse<{ voices: TTSVoice[]; openaiAvailable: boolean }>>) => {
   try {
-    const locale = req.query.locale as string;
+    const provider = req.query.provider as TTSProvider | undefined;
 
-    // Mặc định trả về voices tiếng Việt
-    if (!locale || locale === 'vi-VN') {
-      res.json({
-        success: true,
-        data: ttsService.getVietnameseVoices(),
-      });
-      return;
+    let voices: TTSVoice[];
+    if (provider) {
+      voices = ttsService.getVoicesByProvider(provider);
+    } else {
+      voices = ttsService.getAllVoices();
     }
-
-    // Lấy tất cả voices và filter theo locale
-    const allVoices = await ttsService.getAllVoices();
-    const filteredVoices = allVoices.filter((v) => v.locale.startsWith(locale));
 
     res.json({
       success: true,
-      data: filteredVoices,
+      data: {
+        voices,
+        openaiAvailable: ttsService.isOpenAIAvailable(),
+      },
     });
   } catch (error) {
     res.status(500).json({

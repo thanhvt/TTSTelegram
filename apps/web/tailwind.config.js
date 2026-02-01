@@ -4,17 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark theme colors
-        background: '#0f172a',
-        surface: '#1e293b',
-        'surface-light': '#334155',
-        primary: '#3b82f6',
-        'primary-light': '#60a5fa',
-        secondary: '#8b5cf6',
-        accent: '#06b6d4',
-        success: '#10b981',
-        warning: '#f59e0b',
-        error: '#ef4444',
+        // Dynamic theme colors (từ CSS variables)
+        background: 'var(--color-background)',
+        surface: 'var(--color-surface)',
+        'surface-light': 'var(--color-surface-light)',
+        primary: 'var(--color-primary)',
+        'primary-light': 'var(--color-primary-light)',
+        secondary: 'var(--color-secondary)',
+        accent: 'var(--color-accent)',
+        success: 'var(--color-success)',
+        warning: 'var(--color-warning)',
+        error: 'var(--color-error)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
