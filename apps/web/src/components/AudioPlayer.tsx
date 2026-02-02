@@ -150,7 +150,7 @@ export function AudioPlayer() {
         {/* Message Preview */}
         {currentItem && (
           <div className="mt-2 p-3 bg-background/50 rounded-lg">
-            <p className="text-sm text-gray-300 line-clamp-2">{currentItem.message.text}</p>
+            <p className="text-sm text-gray-300 overflow-y-auto max-h-32 whitespace-pre-wrap">{currentItem.message.text}</p>
           </div>
         )}
       </div>

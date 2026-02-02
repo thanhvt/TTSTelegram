@@ -142,39 +142,28 @@ function QueueItemComponent({
           : 'bg-surface-light/50 hover:bg-surface-light border border-transparent'
       }`}
     >
-      <div className="flex items-start gap-2">
+      {/* Header: Index + Metadata + Actions */}
+      <div className="flex items-center gap-2 mb-2">
         {/* Index */}
-        <span className="text-xs text-gray-500 mt-1">#{index + 1}</span>
+        <span className="text-xs text-gray-500">#{index + 1}</span>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Group name + Người post + Thời gian */}
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="text-xs text-gray-400">{item.dialogTitle}</span>
-            <span className="text-gray-600">•</span>
-            <span className="text-xs text-primary/70 font-medium flex items-center gap-1">
-              <User className="w-3 h-3" />
-              {item.message.senderName || 'Unknown'}
-            </span>
-            <span className="text-gray-600">•</span>
-            <span className="text-xs text-gray-500 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatMessageDate(item.message.date)}
-            </span>
-          </div>
-          {/* Message text */}
-          <div className="text-sm text-white line-clamp-2">{item.message.text}</div>
-          {/* Error message */}
-          {item.error && (
-            <div className="flex items-center gap-1 text-xs text-error mt-1">
-              <AlertCircle className="w-3 h-3" />
-              {item.error}
-            </div>
-          )}
+        {/* Group name + Người post + Thời gian */}
+        <div className="flex-1 flex items-center gap-2 flex-wrap min-w-0">
+          <span className="text-xs text-gray-400">{item.dialogTitle}</span>
+          <span className="text-gray-600">•</span>
+          <span className="text-xs text-primary/70 font-medium flex items-center gap-1">
+            <User className="w-3 h-3" />
+            {item.message.senderName || 'Unknown'}
+          </span>
+          <span className="text-gray-600">•</span>
+          <span className="text-xs text-gray-500 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {formatMessageDate(item.message.date)}
+          </span>
         </div>
 
         {/* Status Badge */}
-        <div className={`px-2 py-1 rounded text-xs ${STATUS_STYLES[item.status]}`}>
+        <div className={`px-2 py-1 rounded text-xs whitespace-nowrap ${STATUS_STYLES[item.status]}`}>
           {item.status === 'generating' && (
             <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
           )}
@@ -192,12 +181,25 @@ function QueueItemComponent({
             e.stopPropagation();
             onRemove();
           }}
-          className="p-1 text-gray-500 hover:text-error"
+          className="p-1 text-gray-500 hover:text-error flex-shrink-0"
           title="Xóa khỏi queue"
         >
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Message text - Full width */}
+      <div className="text-sm text-white overflow-y-auto max-h-20 whitespace-pre-wrap w-full">
+        {item.message.text}
+      </div>
+
+      {/* Error message */}
+      {item.error && (
+        <div className="flex items-center gap-1 text-xs text-error mt-2">
+          <AlertCircle className="w-3 h-3" />
+          {item.error}
+        </div>
+      )}
     </div>
   );
 }
