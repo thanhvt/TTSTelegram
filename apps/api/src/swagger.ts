@@ -36,6 +36,10 @@ API cho ứng dụng TTS Telegram Reader - Đọc tin nhắn Telegram bằng gi�
     },
     servers: [
       {
+        url: 'https://ttstelegram.onrender.com',
+        description: 'Production server',
+      },
+      {
         url: 'http://localhost:3001',
         description: 'Development server',
       },
