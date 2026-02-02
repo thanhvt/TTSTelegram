@@ -11,6 +11,7 @@
 
 // Dictionary inline để tránh CommonJS/ESM import issues
 const TEENCODE_DICTIONARY: Record<string, string> = {
+  // Basic teencode (đã có)
   "ko": "không", "k": "không", "khum": "không", "hông": "không", "hok": "không",
   "đc": "được", "dc": "được", "ok": "được", "okela": "được", "okie": "được",
   "cm": "chúng mày", "vs": "với", "m": "mày", "t": "tao", "j": "gì",
@@ -46,7 +47,41 @@ const TEENCODE_DICTIONARY: Record<string, string> = {
   "kêu": "kêu", "bảo": "bảo", "nói": "nói", "noi": "nói", "ns": "nói",
   "nch": "nói chuyện", "nc": "nói chuyện",
   "đồ": "đồ", "món": "món", "cái": "cái", "con": "con", "thằng": "thằng", "đứa": "đứa",
-  "má": "mẹ", "ba": "ba", "bố": "bố", "bo": "bố", "me": "mẹ"
+  "má": "mẹ", "ba": "ba", "bố": "bố", "bo": "bố", "me": "mẹ",
+  
+  // Gen Z Slang 2025/2026 (mới thêm)
+  "đỉnh": "tuyệt vời", "đỉnh cao": "xuất sắc", "peak": "đỉnh",
+  "tẻn tẻn": "vui vẻ", "tẻn": "vui",
+  "8386": "chúc mừng", "tám ba tám sáu": "chúc mừng",
+  "6677": "xấu", "sáu sáu bảy bảy": "xấu",
+  "bảnh": "tôi", "gato": "ghen tị",
+  "xịn sò": "sang trọng", "xịn": "đẹp", "sò": "đẹp",
+  "bựa": "hài hước", "dỗi": "giận", "trẻ trâu": "non nớt",
+  "sml": "thất bại", "cày": "chăm chỉ", "bóc phốt": "vạch trần",
+  "căng": "căng thẳng", "toang": "hỏng", "sống ảo": "giả tạo",
+  "lầy": "ngớ ngẩn", "vãi": "quá", "thả thính": "tán tỉnh",
+  "cơm chó": "hạnh phúc của người khác", "cẩu lương": "hạnh phúc của người khác",
+  "trà xanh": "kẻ thứ ba", "tuesday": "kẻ thứ ba",
+  "u là tr": "ối trời ơi", "j dz tr": "gì vậy trời",
+  "vcl": "quá", "nt": "nhắn tin", "4u": "cho bạn",
+  "stt": "trạng thái", "avt": "ảnh đại diện", "tt": "tương tác",
+  
+  // Abbreviations bổ sung
+  "tks": "cảm ơn", "tk": "cảm ơn", "thanks": "cảm ơn",
+  "sry": "xin lỗi", "sr": "xin lỗi", "sorry": "xin lỗi",
+  "plz": "làm ơn", "pls": "làm ơn", "please": "làm ơn",
+  "bc": "bởi vì", "bv": "bởi vì",
+  "đúng ko": "đúng không", "có phải ko": "có phải không",
+  "làm j": "làm gì", "ăn j": "ăn gì", "nghĩ j": "nghĩ gì",
+  "ở đâu": "ở đâu", "đi đâu": "đi đâu", "ra sao": "ra sao",
+  "trog khi": "trong khi", "lúc nào": "lúc nào", "bao h": "bao giờ",
+  "h nào": "giờ nào", "ngày nào": "ngày nào",
+  "ngoài ra": "ngoài ra",
+  "hơn nữa": "hơn nữa", "thêm nữa": "thêm nữa",
+  "tuy nhiên": "tuy nhiên", "tuy vậy": "tuy vậy",
+  "vì thế": "vì thế", "vì vậy": "vì vậy", "do đó": "do đó",
+  "nhưng mà": "nhưng mà", "song le": "song le",
+  "chẳng hạn": "chẳng hạn", "ví dụ": "ví dụ", "vd": "ví dụ"
 };
 
 const PROFANITY_DICTIONARY: Record<string, string> = {
@@ -70,6 +105,12 @@ export interface NormalizationOptions {
    * @default true
    */
   normalizeTeencode?: boolean;
+
+  /**
+   * Có normalize numbers và units không
+   * @default true
+   */
+  normalizeNumbers?: boolean;
 
   /**
    * Case sensitive khi replace
@@ -105,12 +146,16 @@ export class TextNormalizationService {
    * const service = new TextNormalizationService();
    * const normalized = service.normalize("ko đc cm"); 
    * // Output: "không được chúng mày"
+   * 
+   * const withNumbers = service.normalize("3cm, 5kg, 1.000.000đ");
+   * // Output: "ba xen ti mét, năm ki lô gam, một triệu đồng"
    * ```
    */
   normalize(text: string, options: NormalizationOptions = {}): string {
     const {
       filterProfanity = true,
       normalizeTeencode = true,
+      normalizeNumbers = true,
       caseSensitive = false,
       customReplacements = {},
     } = options;
@@ -130,7 +175,12 @@ export class TextNormalizationService {
       result = this.applyReplacements(result, this.profanityDict, caseSensitive);
     }
 
-    // Step 4: Clean up multiple spaces
+    // Step 4: Normalize numbers and units
+    if (normalizeNumbers) {
+      result = this.normalizeNumbersAndUnits(result);
+    }
+
+    // Step 5: Clean up multiple spaces
     result = result.replace(/\s+/g, ' ').trim();
 
     return result;
@@ -216,6 +266,164 @@ export class TextNormalizationService {
     const teencodeWords = Object.keys(this.dictionary).map(k => k.toLowerCase());
     
     return words.filter(word => teencodeWords.includes(word));
+  }
+
+  /**
+   * Convert số thành chữ tiếng Việt
+   * 
+   * @param num - Số cần convert (0-999,999,999,999)
+   * @returns Chữ số tiếng Việt
+   * 
+   * @example
+   * ```ts
+   * numberToWords(123) // "một trăm hai mươi ba"
+   * numberToWords(1000000) // "một triệu"
+   * ```
+   */
+  private numberToWords(num: number): string {
+    if (num === 0) return "không";
+    
+    const ones = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+    const tens = ["", "mười", "hai mươi", "ba mươi", "bốn mươi", "năm mươi", "sáu mươi", "bảy mươi", "tám mươi", "chín mươi"];
+    
+    // Hàm phụ cho số < 1000
+    const convertHundreds = (n: number): string => {
+      if (n === 0) return "";
+      
+      const hundred = Math.floor(n / 100);
+      const remainder = n % 100;
+      const ten = Math.floor(remainder / 10);
+      const one = remainder % 10;
+      
+      let result = "";
+      
+      if (hundred > 0) {
+        result += ones[hundred] + " trăm";
+        if (remainder > 0) result += " ";
+      }
+      
+      if (ten > 1) {
+        result += tens[ten];
+        if (one > 0) {
+          result += " " + (one === 1 ? "mốt" : ones[one]);
+        }
+      } else if (ten === 1) {
+        result += "mười";
+        if (one > 0) {
+          result += " " + (one === 5 ? "lăm" : ones[one]);
+        }
+      } else if (one > 0) {
+        if (hundred > 0) result += "linh ";
+        result += ones[one];
+      }
+      
+      return result.trim();
+    };
+    
+    // Xử lý số lớn
+    if (num >= 1000000000) {
+      const billions = Math.floor(num / 1000000000);
+      const remainder = num % 1000000000;
+      let result = convertHundreds(billions) + " tỷ";
+      if (remainder > 0) {
+        result += " " + this.numberToWords(remainder);
+      }
+      return result.trim();
+    }
+    
+    if (num >= 1000000) {
+      const millions = Math.floor(num / 1000000);
+      const remainder = num % 1000000;
+      let result = convertHundreds(millions) + " triệu";
+      if (remainder > 0) {
+        result += " " + this.numberToWords(remainder);
+      }
+      return result.trim();
+    }
+    
+    if (num >= 1000) {
+      const thousands = Math.floor(num / 1000);
+      const remainder = num % 1000;
+      let result = convertHundreds(thousands) + " nghìn";
+      if (remainder > 0) {
+        result += " " + convertHundreds(remainder);
+      }
+      return result.trim();
+    }
+    
+    return convertHundreds(num);
+  }
+
+  /**
+   * Normalize numbers với units thành Vietnamese words
+   * 
+   * @param text - Text chứa số và đơn vị
+   * @returns Text với số đơn vị đã normalize
+   * 
+   * @example
+   * ```ts
+   * normalizeNumbersAndUnits("3cm") // "ba xen ti mét"
+   * normalizeNumbersAndUnits("5kg") // "năm ki lô gam"
+   * normalizeNumbersAndUnits("1.000.000đ") // "một triệu đồng"
+   * ```
+   */
+  normalizeNumbersAndUnits(text: string): string {
+    let result = text;
+    
+    // Currency: 1.000.000đ, 1.000.000₫, 1.000.000 VND
+    result = result.replace(/(\d{1,3}(?:\.\d{3})*)\s*(đ|₫|vnd|vnđ|dong)/gi, (match, num, unit) => {
+      const number = parseInt(num.replace(/\./g, ''));
+      return this.numberToWords(number) + " đồng";
+    });
+    
+    // Dates: 01/02, 12/05  
+    result = result.replace(/(\d{1,2})\/(\d{1,2})/g, (match, day, month) => {
+      const d = parseInt(day);
+      const m = parseInt(month);
+      return `${d === 1 ? "mùng " : ""}${this.numberToWords(d)} tháng ${this.numberToWords(m)}`;
+    });
+    
+    // Units - Distance
+    result = result.replace(/(\d+(?:\.\d+)?)\s*(km|m|cm|mm)/gi, (match, num, unit) => {
+      const number = parseFloat(num);
+      const unitWords: Record<string, string> = {
+        'km': 'ki lô mét',
+        'm': 'mét',
+        'cm': 'xen ti mét',
+        'mm': 'mi li mét'
+      };
+      return this.numberToWords(Math.floor(number)) + " " + unitWords[unit.toLowerCase()];
+    });
+    
+    // Units - Weight
+    result = result.replace(/(\d+(?:\.\d+)?)\s*(kg|g|mg|tấn)/gi, (match, num, unit) => {
+      const number = parseFloat(num);
+      const unitWords: Record<string, string> = {
+        'tấn': 'tấn',
+        'kg': 'ki lô gam',
+        'g': 'gam',
+        'mg': 'mi li gam'
+      };
+      return this.numberToWords(Math.floor(number)) + " " + unitWords[unit.toLowerCase()];
+    });
+    
+    // Time units
+    result = result.replace(/(\d+)\s*(giây|phút|giờ|ngày|tuần|tháng|năm)/gi, (match, num, unit) => {
+      const number = parseInt(num);
+      return this.numberToWords(number) + " " + unit.toLowerCase();
+    });
+    
+    // Standalone numbers (cuối cùng để không conflict với patterns trên)
+    result = result.replace(/\b(\d{1,3}(?:\.\d{3})*|\d+)\b/g, (match) => {
+      const cleanNum = match.replace(/\./g, '');
+      const number = parseInt(cleanNum);
+      if (!isNaN(number) && number >= 0) {
+        return this.numberToWords(number);
+      }
+      return match;
+    });
+    
+    return result;
   }
 }
 
