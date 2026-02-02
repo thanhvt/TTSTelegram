@@ -479,7 +479,7 @@ class TTSService {
     // Ví dụ: "ko đc cm" -> "không được chúng mày"
     const normalizedText = normalizeText(text, {
       normalizeTeencode: true,
-      filterProfanity: true, // Replace từ không phù hợp bằng placeholder
+      filterProfanity: true, // Replace beep bằng placeholder
     });
     
     // Log nếu có thay đổi

@@ -24,7 +24,6 @@
     "cx": "cũng",
     "mk": "mình",
     "mik": "mình",
-    "mk": "mình",
     "ng": "người",
     "ngta": "người ta",
     "tui": "tôi",
@@ -109,7 +108,6 @@
     "o": "ở",
     "ơ": "ở",
     "thik": "thích",
-    "ik": "thích",
     "ghét": "ghét",
     "ks": "không sao",
     "ok": "được",
@@ -118,7 +116,6 @@
     "chx": "chưa",
     "chưa": "chưa",
     "ròi": "rồi",
-    "r": "rồi",
     "hông": "không",
     "hok": "không",
     "hừm": "ừ",
@@ -134,16 +131,13 @@
     "mai": "mai",
     "tối": "tối",
     "lun": "luôn",
-    "lun": "luôn",
     "luon": "luôn",
-    "lun": "luôn",
     "nữa": "nữa",
     "nx": "nữa",
     "mà": "mà",
     "mak": "mà",
     "nhg": "nhưng",
     "nhưg": "nhưng",
-    "trog": "trong",
     "trog": "trong",
     "ngoai": "ngoài",
     "trên": "trên",
@@ -173,17 +167,17 @@
     "me": "mẹ"
   },
   "profanity": {
-    "dm": "[từ không phù hợp]",
-    "dcm": "[từ không phù hợp]",
-    "đcm": "[từ không phù hợp]",
-    "vl": "[từ không phù hợp]",
-    "cl": "[từ không phù hợp]",
-    "cc": "[từ không phù hợp]"
+    "dm": "[beep]",
+    "dcm": "[beep]",
+    "đcm": "[beep]",
+    "vl": "[beep]",
+    "cl": "[beep]",
+    "cc": "[beep]"
   },
   "notes": [
     "Một số từ có nhiều nghĩa tùy context (ví dụ: 'm' có thể là 'mày' hoặc 'mẹ')",
     "Replacement nên check word boundaries để tránh false positive", 
     "Có thể cần bổ sung thêm từ dựa trên feedback thực tế",
-    "Profanity words được replace bằng placeholder để tránh TTS đọc từ không phù hợp"
+    "Profanity words được replace bằng placeholder để tránh TTS đọc beep"
   ]
 }

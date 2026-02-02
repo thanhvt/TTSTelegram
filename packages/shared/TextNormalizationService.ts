@@ -9,7 +9,54 @@
  * Sử dụng khi: Trước khi gọi TTS API để tạo audio
  */
 
-import teencodeDict from '../teencode-dictionary.json';
+// Dictionary inline để tránh CommonJS/ESM import issues
+const TEENCODE_DICTIONARY: Record<string, string> = {
+  "ko": "không", "k": "không", "khum": "không", "hông": "không", "hok": "không",
+  "đc": "được", "dc": "được", "ok": "được", "okela": "được", "okie": "được",
+  "cm": "chúng mày", "vs": "với", "m": "mày", "t": "tao", "j": "gì",
+  "ntn": "như thế nào", "ls": "là sao", "kb": "không biết", "bt": "biết", "bik": "biết", "bjk": "biết",
+  "cx": "cũng", "cg": "cũng", "mk": "mình", "mik": "mình", "ng": "người", "ngta": "người ta",
+  "tui": "tôi", "iu": "yêu", "ik": "đi", "di": "đi", "lm": "làm", "lam": "làm",
+  "vk": "vợ", "ck": "chồng", "ox": "ông xã", "bx": "bà xã", "vc": "vợ chồng",
+  "bme": "bố mẹ", "ctrai": "con trai", "cgai": "con gái", "qhe": "quan hệ",
+  "bthường": "bình thường", "uhm": "ừ", "uh": "ừ", "u": "ừ", "hừm": "ừ",
+  "vz": "vậy", "z": "vậy", "zậy": "vậy", "zay": "vậy", "thoy": "thôi",
+  "ny": "người yêu", "nyc": "người yêu cũ", "nycm": "người yêu của mình",
+  "ty": "tỷ", "anh": "anh", "a": "anh", "e": "em", "c": "chị",
+  "v": "vì", "nv": "nhưng vì", "nh": "như", "tl": "trả lời", "rep": "trả lời",
+  "ib": "nhắn tin riêng", "pm": "nhắn tin riêng", "r": "rồi", "ròi": "rồi",
+  "đ": "đã", "đang": "đang", "đag": "đang", "dg": "đang",
+  "trc": "trước", "sau": "sau", "khi": "khi", "luc": "lúc", "tg": "thời gian",
+  "h": "giờ", "p": "phút", "s": "giây", "thnao": "thế nào",
+  "sn": "sinh nhật", "snvv": "sinh nhật vui vẻ", "hpbd": "chúc mừng sinh nhật",
+  "g9": "chúc ngủ ngon", "gn": "chúc ngủ ngon", "bb": "tạm biệt", "bye": "tạm biệt", "bai": "tạm biệt",
+  "klq": "không liên quan", "đlgt": "đang làm gì thế",
+  "hk": "học", "hn": "Hà Nội", "hcm": "Hồ Chí Minh", "sg": "Sài Gòn",
+  "qt": "quá trời", "qá": "quá", "wa": "quá", "wá": "quá",
+  "zui": "vui", "dzo": "vào", "dzô": "vào", "ra": "ra", "o": "ở", "ơ": "ở",
+  "thik": "thích", "ghét": "ghét", "ks": "không sao",
+  "chx": "chưa", "chưa": "chưa",
+  "zoom": "zùm", "ak": "à", "ạ": "ạ", "hả": "hả", "hử": "hử",
+  "nha": "nhé", "nhó": "nhé", "nko": "nhé không",
+  "hen": "hẹn", "mai": "mai", "tối": "tối", "lun": "luôn", "luon": "luôn",
+  "nữa": "nữa", "nx": "nữa", "mà": "mà", "mak": "mà",
+  "nhg": "nhưng", "nhưg": "nhưng", "trog": "trong",
+  "ngoai": "ngoài", "trên": "trên", "dưới": "dưới", "giữa": "giữa",
+  "xung": "xung quanh", "chung": "chung quanh", "khoảng": "khoảng", "tầm": "tầm",
+  "kêu": "kêu", "bảo": "bảo", "nói": "nói", "noi": "nói", "ns": "nói",
+  "nch": "nói chuyện", "nc": "nói chuyện",
+  "đồ": "đồ", "món": "món", "cái": "cái", "con": "con", "thằng": "thằng", "đứa": "đứa",
+  "má": "mẹ", "ba": "ba", "bố": "bố", "bo": "bố", "me": "mẹ"
+};
+
+const PROFANITY_DICTIONARY: Record<string, string> = {
+  "dm": "[beep]",
+  "dcm": "[beep]",
+  "đcm": "[beep]",
+  "vl": "[beep]",
+  "cl": "[beep]",
+  "cc": "[beep]"
+};
 
 export interface NormalizationOptions {
   /**
@@ -41,9 +88,9 @@ export class TextNormalizationService {
   private profanityDict: Record<string, string>;
 
   constructor() {
-    // Load dictionaries từ JSON
-    this.dictionary = teencodeDict.dictionary as Record<string, string>;
-    this.profanityDict = teencodeDict.profanity as Record<string, string>;
+    // Load dictionaries from constants
+    this.dictionary = { ...TEENCODE_DICTIONARY };
+    this.profanityDict = { ...PROFANITY_DICTIONARY };
   }
 
   /**
