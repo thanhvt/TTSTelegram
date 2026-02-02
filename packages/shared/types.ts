@@ -28,7 +28,7 @@ export interface TelegramMessage {
   id: number;
   dialogId: string;
   text: string;
-  senderName: string;
+  senderName?: string; // Có thể undefined nếu sender không có tên
   date: Date;
   isOutgoing: boolean;
 }

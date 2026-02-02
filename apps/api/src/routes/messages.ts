@@ -10,7 +10,7 @@ import { Router, Request, Response } from 'express';
 import { telegramService } from '../services/telegram.js';
 import type { ApiResponse, TelegramMessage, PaginatedResponse } from '@tts-telegram/shared';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * GET /api/messages/:dialogId
