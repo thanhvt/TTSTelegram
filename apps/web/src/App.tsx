@@ -220,8 +220,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto max-w-7xl mx-auto px-4 py-6 w-full">
+      {/* Main Content - Giảm padding trái phải */}
+      <main className="flex-1 overflow-auto max-w-7xl mx-auto px-2 py-4 w-full">
         {authStatus !== 'connected' ? (
           // Login Screen
           <div className="max-w-md mx-auto py-12">
@@ -229,14 +229,14 @@ export default function App() {
           </div>
         ) : (
           // Main App
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Group Selector */}
-            <div className="lg:col-span-1 h-[calc(100vh-200px)]">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Left Column: Group Selector - Tăng chiều rộng lên 2/5 (40%) */}
+            <div className="lg:col-span-2 h-[calc(100vh-180px)]">
               <GroupSelector />
             </div>
 
-            {/* Right Column: Player & Queue */}
-            <div className="lg:col-span-2 space-y-6">
+            {/* Right Column: Player & Queue - Còn 3/5 (60%) */}
+            <div className="lg:col-span-3 space-y-4">
               {/* Start Reading Button */}
               <button
                 onClick={handleStartReading}
