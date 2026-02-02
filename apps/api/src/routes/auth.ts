@@ -84,7 +84,7 @@ router.post('/sign-in', async (req: Request, res: Response<ApiResponse<{ session
     const { phoneNumber, code, password } = signInSchema.parse(req.body);
 
     const sessionString = await telegramService.signIn(phoneNumber, code, password);
-
+    console.log('🔐 SESSION_STRING:', sessionString); 
     res.json({
       success: true,
       data: {
