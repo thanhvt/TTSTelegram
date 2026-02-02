@@ -19,6 +19,7 @@ export interface TelegramDialog {
   unreadCount: number;
   lastMessage?: string;
   lastMessageDate?: Date;
+  photoUrl?: string; // URL hoặc base64 của avatar
 }
 
 export interface TelegramMessage {
@@ -195,37 +196,60 @@ class TelegramService {
 
     const dialogs = await this.client.getDialogs({ limit });
 
-    return dialogs.map((dialog) => {
-      let type: TelegramDialog['type'] = 'user';
+    // Xử lý song song để tăng tốc độ lấy ảnh
+    const results = await Promise.all(
+      dialogs.map(async (dialog) => {
+        let type: TelegramDialog['type'] = 'user';
+        let photoUrl: string | undefined;
 
-      // Phân biệt chính xác giữa Channel, Megagroup/Supergroup và Group
-      // - Channel class có thể là broadcast channel hoặc megagroup/supergroup
-      // - Sử dụng flag megagroup/gigagroup để phân biệt
-      if (dialog.entity?.className === 'Channel') {
-        const channel = dialog.entity as Api.Channel;
-        if (channel.megagroup || channel.gigagroup) {
-          // Megagroup (supergroup) hoặc Gigagroup (nhóm > 200k thành viên)
-          type = 'megagroup';
-        } else {
-          // Broadcast channel thuần túy  
-          type = 'channel';
+        // Phân biệt chính xác giữa Channel, Megagroup/Supergroup và Group
+        if (dialog.entity?.className === 'Channel') {
+          const channel = dialog.entity as Api.Channel;
+          if (channel.megagroup || channel.gigagroup) {
+            type = 'megagroup';
+          } else {
+            type = 'channel';
+          }
+        } else if (dialog.isGroup) {
+          type = 'group';
         }
-      } else if (dialog.isGroup) {
-        // Basic group (nhóm nhỏ dưới 200 thành viên, chưa upgrade lên supergroup)
-        type = 'group';
-      }
 
-      return {
-        id: dialog.id?.toString() || '',
-        title: dialog.title || 'Unknown',
-        type,
-        unreadCount: dialog.unreadCount || 0,
-        lastMessage: dialog.message?.message,
-        lastMessageDate: dialog.message?.date
-          ? new Date(dialog.message.date * 1000)
-          : undefined,
-      };
-    });
+        // Lấy ảnh đại diện nếu có
+        try {
+          if (dialog.entity && 'photo' in dialog.entity && dialog.entity.photo) {
+            const photo = dialog.entity.photo;
+            if (photo.className === 'ChatPhoto') {
+              // Download ảnh nhỏ (strippedThumb hoặc thumbnail)
+              const buffer = await this.client!.downloadProfilePhoto(dialog.entity, {
+                isBig: false, // Lấy ảnh nhỏ để tiết kiệm bandwidth
+              });
+              if (buffer) {
+                // Convert buffer sang base64 data URL
+                const base64 = Buffer.from(buffer).toString('base64');
+                photoUrl = `data:image/jpeg;base64,${base64}`;
+              }
+            }
+          }
+        } catch {
+          // Bỏ qua lỗi download ảnh, không ảnh hưởng dialog data
+          console.log(`⚠️ Không thể lấy ảnh cho: ${dialog.title}`);
+        }
+
+        return {
+          id: dialog.id?.toString() || '',
+          title: dialog.title || 'Unknown',
+          type,
+          unreadCount: dialog.unreadCount || 0,
+          lastMessage: dialog.message?.message,
+          lastMessageDate: dialog.message?.date
+            ? new Date(dialog.message.date * 1000)
+            : undefined,
+          photoUrl,
+        };
+      })
+    );
+
+    return results;
   }
 
   /**

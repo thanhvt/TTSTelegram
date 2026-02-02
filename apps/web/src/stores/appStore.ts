@@ -15,6 +15,7 @@ export interface TelegramDialog {
   unreadCount: number;
   lastMessage?: string;
   lastMessageDate?: Date;
+  photoUrl?: string; // URL hoặc base64 của avatar
 }
 
 export interface TelegramMessage {
