@@ -2,7 +2,14 @@
   "name": "@tts-telegram/shared",
   "version": "1.0.0",
   "description": "Shared types for TTS Telegram",
+  "type": "module",
   "main": "types.ts",
   "types": "types.ts",
+  "exports": {
+    ".": "./types.ts",
+    "./types": "./types.ts",
+    "./TextNormalizationService": "./TextNormalizationService.ts",
+    "./TextNormalizationService.js": "./TextNormalizationService.ts"
+  },
   "scripts": {}
 }

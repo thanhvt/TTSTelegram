@@ -121,6 +121,18 @@ interface AppState {
   setSelectedVoice: (voice: string) => void;
   setRandomVoice: (enabled: boolean) => void;
   setTheme: (theme: ThemeType) => void;
+
+  // UI State
+  /**
+   * Trạng thái collapse của GroupSelector panel
+   * @description true = collapsed (chỉ hiện icon), false = expanded (hiện full)
+   */
+  isGroupSelectorCollapsed: boolean;
+  /**
+   * Toggle trạng thái collapse/expand của GroupSelector
+   * @description Lưu vào localStorage để persist qua sessions
+   */
+  toggleGroupSelectorCollapse: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -229,6 +241,10 @@ export const useAppStore = create<AppState>()(
       // Theme
       theme: 'ocean-calm' as ThemeType,
       setTheme: (theme) => set({ theme }),
+
+      // UI State
+      isGroupSelectorCollapsed: false,
+      toggleGroupSelectorCollapse: () => set((state) => ({ isGroupSelectorCollapsed: !state.isGroupSelectorCollapsed })),
     }),
     {
       name: 'tts-telegram-storage',
@@ -243,6 +259,7 @@ export const useAppStore = create<AppState>()(
         theme: state.theme,
         sessionString: state.sessionString, // Persist session để auto-login
         phoneNumber: state.phoneNumber, // Persist số điện thoại
+        isGroupSelectorCollapsed: state.isGroupSelectorCollapsed, // Persist UI state
       }),
       // Migrate từ version cũ
       migrate: (persistedState: unknown, version: number) => {

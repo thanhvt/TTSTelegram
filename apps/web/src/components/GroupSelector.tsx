@@ -17,6 +17,8 @@ import {
   CheckCheck,
   XCircle,
   MessageCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { dialogsApi } from '../lib/api';
 import { useAppStore, TelegramDialog } from '../stores/appStore';
@@ -46,6 +48,8 @@ export function GroupSelector() {
     toggleDialogSelection,
     selectAllDialogs,
     deselectAllDialogs,
+    isGroupSelectorCollapsed,
+    toggleGroupSelectorCollapse,
   } = useAppStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -131,125 +135,175 @@ export function GroupSelector() {
   }, [dialogs]);
 
   return (
-    <div className="card h-full flex flex-col overflow-hidden p-3">
-      {/* Header - Compact */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-            <MessageCircle className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-white">Chọn Groups</h2>
-            <p className="text-[10px] text-gray-500">{typeCounts.all} có tin mới</p>
-          </div>
-        </div>
-        <button
-          onClick={fetchDialogs}
-          disabled={isLoading}
-          className="btn-ghost p-2 rounded-lg hover:bg-surface-light"
-          title="Làm mới danh sách"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-primary' : 'text-gray-400'}`} />
-        </button>
-      </div>
-
-      {/* Search - Compact */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Tìm kiếm group..."
-          className="input pl-10 py-2 text-sm bg-surface-light/50 border-white/5 rounded-lg"
-        />
-      </div>
-
-      {/* Filter tabs - Compact */}
-      <div className="flex gap-1.5 mb-3">
-        {[
-          { key: 'all', label: 'Tất cả', count: typeCounts.all },
-          { key: 'group', label: 'Groups', count: typeCounts.group },
-          { key: 'channel', label: 'Channels', count: typeCounts.channel },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilterType(tab.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              filterType === tab.key
-                ? 'filter-pill-active text-white'
-                : 'filter-pill text-gray-400 hover:text-white'
-            }`}
-          >
-            {tab.label} ({tab.count})
-          </button>
-        ))}
-      </div>
-
-      {/* Smart Action Bar - Compact */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <ArrowUpDown className="w-3.5 h-3.5 text-gray-500" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="bg-transparent border-none text-gray-400 text-xs focus:ring-0 cursor-pointer hover:text-white transition-colors"
-          >
-            <option value="time" className="bg-surface">Thời gian</option>
-            <option value="unread" className="bg-surface">Tin chưa đọc</option>
-          </select>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          <button 
-            onClick={selectAllDialogs} 
-            className="btn-ghost text-[10px] py-1 px-2 rounded flex items-center gap-1 hover:text-primary"
-            title="Chọn tất cả"
-          >
-            <CheckCheck className="w-3.5 h-3.5" />
-          </button>
-          <button 
-            onClick={deselectAllDialogs} 
-            className="btn-ghost text-[10px] py-1 px-2 rounded flex items-center gap-1 hover:text-error"
-            title="Bỏ chọn"
-          >
-            <XCircle className="w-3.5 h-3.5" />
-          </button>
-          
-          <div className="ml-1 px-2 py-1 rounded bg-surface-light/50 text-[10px]">
-            <span className="text-primary font-semibold">{selectedDialogIds.length}</span>
-            <span className="text-gray-500"> chọn</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Dialog list - Compact cards */}
-      <div className="flex-1 overflow-y-auto space-y-1.5 pt-0.5">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-10 h-10 animate-spin text-primary mb-3" />
-            <p className="text-gray-500 text-sm">Đang tải danh sách...</p>
-          </div>
-        ) : filteredDialogs.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-surface-light/50 flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="w-8 h-8 text-gray-600" />
+    <div className={`card h-full flex flex-col overflow-hidden p-3 transition-all duration-300 ease-in-out ${
+      isGroupSelectorCollapsed ? 'w-[60px]' : 'w-full'
+    }`}>
+      {/* Nội dung chính - ẩn khi collapsed */}
+      {!isGroupSelectorCollapsed && (
+        <>
+          {/* Header - Compact */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-white">Chọn Groups</h2>
+                <p className="text-[10px] text-gray-500">{typeCounts.all} có tin mới</p>
+              </div>
             </div>
-            <p className="text-gray-500">
-              {searchQuery ? 'Không tìm thấy kết quả' : 'Không có groups nào có tin mới'}
-            </p>
+            
+            {/* Button group: Refresh + Collapse */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={fetchDialogs}
+                disabled={isLoading}
+                className="btn-ghost p-2 rounded-lg hover:bg-surface-light"
+                title="Làm mới danh sách"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-primary' : 'text-gray-400'}`} />
+              </button>
+              
+              {/* Collapse Button - Ở góc trên bên phải */}
+              <button
+                onClick={toggleGroupSelectorCollapse}
+                className="btn-ghost p-2 rounded-lg hover:bg-surface-light group"
+                title="Thu gọn"
+              >
+                <ChevronLeft className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
+              </button>
+            </div>
           </div>
-        ) : (
-          filteredDialogs.map((dialog) => (
-            <DialogItem
-              key={dialog.id}
-              dialog={dialog}
-              isSelected={selectedDialogIds.includes(dialog.id)}
-              onToggle={() => toggleDialogSelection(dialog.id)}
+
+          {/* Search - Compact */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm group..."
+              className="input pl-10 py-2 text-sm bg-surface-light/50 border-white/5 rounded-lg"
             />
-          ))
-        )}
-      </div>
+          </div>
+
+          {/* Filter tabs - Compact */}
+          <div className="flex gap-1.5 mb-3">
+            {[
+              { key: 'all', label: 'Tất cả', count: typeCounts.all },
+              { key: 'group', label: 'Groups', count: typeCounts.group },
+              { key: 'channel', label: 'Channels', count: typeCounts.channel },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setFilterType(tab.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  filterType === tab.key
+                    ? 'filter-pill-active text-white'
+                    : 'filter-pill text-gray-400 hover:text-white'
+                }`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
+
+          {/* Smart Action Bar - Compact */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-3.5 h-3.5 text-gray-500" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="bg-transparent border-none text-gray-400 text-xs focus:ring-0 cursor-pointer hover:text-white transition-colors"
+              >
+                <option value="time" className="bg-surface">Thời gian</option>
+                <option value="unread" className="bg-surface">Tin chưa đọc</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={selectAllDialogs} 
+                className="btn-ghost text-[10px] py-1 px-2 rounded flex items-center gap-1 hover:text-primary"
+                title="Chọn tất cả"
+              >
+                <CheckCheck className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={deselectAllDialogs} 
+                className="btn-ghost text-[10px] py-1 px-2 rounded flex items-center gap-1 hover:text-error"
+                title="Bỏ chọn"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+              </button>
+              
+              <div className="ml-1 px-2 py-1 rounded bg-surface-light/50 text-[10px]">
+                <span className="text-primary font-semibold">{selectedDialogIds.length}</span>
+                <span className="text-gray-500"> chọn</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Dialog list - Compact cards */}
+          <div className="flex-1 overflow-y-auto space-y-1.5 pt-0.5">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="w-10 h-10 animate-spin text-primary mb-3" />
+                <p className="text-gray-500 text-sm">Đang tải danh sách...</p>
+              </div>
+            ) : filteredDialogs.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-full bg-surface-light/50 flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="w-8 h-8 text-gray-600" />
+                </div>
+                <p className="text-gray-500">
+                  {searchQuery ? 'Không tìm thấy kết quả' : 'Không có groups nào có tin mới'}
+                </p>
+              </div>
+            ) : (
+              filteredDialogs.map((dialog) => (
+                <DialogItem
+                  key={dialog.id}
+                  dialog={dialog}
+                  isSelected={selectedDialogIds.includes(dialog.id)}
+                  onToggle={() => toggleDialogSelection(dialog.id)}
+                />
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Collapsed state - chỉ hiện icon và nút expand */}
+      {isGroupSelectorCollapsed && (
+        <div className="flex flex-col h-full">
+          {/* Header vùng với nút expand */}
+          <div className="flex items-center justify-end mb-3">
+            <button
+              onClick={toggleGroupSelectorCollapse}
+              className="btn-ghost p-2 rounded-lg hover:bg-surface-light group"
+              title="Mở rộng"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
+            </button>
+          </div>
+          
+          {/* Icon chính ở giữa */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-primary" />
+            </div>
+            
+            {/* Badge hiển thị số groups đã chọn */}
+            {selectedDialogIds.length > 0 && (
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                <span className="text-xs font-bold text-white">{selectedDialogIds.length}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

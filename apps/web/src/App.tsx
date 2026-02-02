@@ -28,6 +28,7 @@ export default function App() {
     clearQueue,
     sessionString,
     clearSessionString,
+    isGroupSelectorCollapsed,
   } = useAppStore();
 
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -221,28 +222,30 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content - Giảm padding trái phải */}
-      <main className="flex-1 overflow-auto max-w-7xl mx-auto px-2 py-4 w-full">
+      {/* Main Content - Flex container để panels fill full height */}
+      <main className="flex-1 overflow-hidden max-w-7xl mx-auto px-2 py-4 w-full flex flex-col">
         {authStatus !== 'connected' ? (
           // Login Screen
           <div className="max-w-md mx-auto py-12">
             <LoginForm />
           </div>
         ) : (
-          // Main App
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            {/* Left Column: Group Selector - Tăng chiều rộng lên 2/5 (40%) */}
-            <div className="lg:col-span-2 h-[calc(100vh-180px)]">
+          // Main App - Grid layout responsive với collapsed state
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+            {/* Left Column: Group Selector - Dynamic width dựa vào collapsed state */}
+            <div className={`transition-all duration-300 ease-in-out ${
+              isGroupSelectorCollapsed ? 'lg:col-span-1' : 'lg:col-span-5'
+            }`}>
               <GroupSelector />
             </div>
 
-            {/* Right Column: Player & Queue - Còn 3/5 (60%) */}
-            <div className="lg:col-span-3 space-y-4">
+            {/* Right Column: Player & Queue - Flexible height */}
+            <div className="lg:col-span-7 flex flex-col gap-4">
               {/* Start Reading Button */}
               <button
                 onClick={handleStartReading}
                 disabled={selectedDialogIds.length === 0 || isLoadingMessages}
-                className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
+                className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2 flex-shrink-0"
               >
                 {isLoadingMessages ? (
                   <>
@@ -257,12 +260,17 @@ export default function App() {
                 )}
               </button>
 
-              {/* Audio Player */}
-              <AudioPlayer />
+              {/* SPLIT VIEW: Player 40% | Queue 60% - Full height */}
+              <div className="flex gap-4 flex-1 min-h-0">
+                {/* Player Section - 40% width */}
+                <div className="w-[40%] flex-shrink-0">
+                  <AudioPlayer />
+                </div>
 
-              {/* Message Queue */}
-              <div className="h-[calc(100vh-500px)]">
-                <MessageQueue />
+                {/* Queue Section - 60% width (flex-1 auto-grow) */}
+                <div className="flex-1">
+                  <MessageQueue />
+                </div>
               </div>
             </div>
           </div>

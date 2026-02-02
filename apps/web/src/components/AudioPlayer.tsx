@@ -93,9 +93,9 @@ export function AudioPlayer() {
   }
 
   return (
-    <div className="card bg-gradient-to-r from-surface to-surface-light">
+    <div className="card bg-gradient-to-r from-surface to-surface-light h-full flex flex-col">
       {/* Now Playing Info */}
-      <div className="mb-4">
+      <div className="mb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           {/* Audio Wave Animation */}
           {isPlaying && (
@@ -146,17 +146,19 @@ export function AudioPlayer() {
             {currentItem?.status === 'pending' && 'Chờ'}
           </div>
         </div>
-
-        {/* Message Preview */}
-        {currentItem && (
-          <div className="mt-2 p-3 bg-background/50 rounded-lg">
-            <p className="text-sm text-gray-300 overflow-y-auto max-h-32 whitespace-pre-wrap">{currentItem.message.text}</p>
-          </div>
-        )}
       </div>
 
-      {/* Progress Bar */}
-      <div className="mb-4 group select-none">
+      {/* Message Preview - Scrollable, chiếm phần còn lại */}
+      {currentItem && (
+        <div className="flex-1 min-h-0 mb-4">
+          <div className="h-full p-3 bg-background/50 rounded-lg overflow-y-auto">
+            <p className="text-sm text-gray-300 whitespace-pre-wrap">{currentItem.message.text}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Progress Bar - Always visible */}
+      <div className="mb-4 group select-none flex-shrink-0">
         <div
           className="relative h-3 bg-surface-light rounded-full cursor-pointer touch-none"
           onClick={(e) => {
@@ -183,8 +185,8 @@ export function AudioPlayer() {
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-4">
+      {/* Controls - Always visible */}
+      <div className="flex items-center justify-center gap-4 flex-shrink-0">
         {/* Previous */}
         <button
           onClick={previousInQueue}
@@ -222,8 +224,8 @@ export function AudioPlayer() {
         </button>
       </div>
 
-      {/* Volume & Speed Controls */}
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-surface-light">
+      {/* Volume & Speed Controls - Always visible */}
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-surface-light flex-shrink-0">
         {/* Volume */}
         <div className="flex items-center gap-2">
           <button

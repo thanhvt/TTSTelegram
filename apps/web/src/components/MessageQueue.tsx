@@ -4,6 +4,7 @@
  * @description Queue các tin nhắn đang chờ đọc
  */
 
+import { useEffect, useRef } from 'react';
 import { Trash2, MessageSquare, AlertCircle, Loader2, User, Clock } from 'lucide-react';
 import { useAppStore, QueueItem } from '../stores/appStore';
 
@@ -45,6 +46,18 @@ const STATUS_STYLES: Record<string, string> = {
 export function MessageQueue() {
   const { queue, currentQueueIndex, removeFromQueue, clearQueue, setCurrentQueueIndex } =
     useAppStore();
+  
+  const queueListRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll đến item đang phát khi currentQueueIndex thay đổi
+  useEffect(() => {
+    if (currentQueueIndex >= 0 && currentQueueIndex < queue.length) {
+      const currentElement = queueListRef.current?.querySelector(`[data-index="${currentQueueIndex}"]`);
+      if (currentElement) {
+        currentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [currentQueueIndex, queue.length]);
 
   if (queue.length === 0) {
     return (
@@ -101,7 +114,7 @@ export function MessageQueue() {
       </div>
 
       {/* Queue List */}
-      <div className="flex-1 overflow-y-auto space-y-2">
+      <div ref={queueListRef} className="flex-1 overflow-y-auto space-y-2">
         {queue.map((item, index) => (
           <QueueItemComponent
             key={item.id}
@@ -136,6 +149,7 @@ function QueueItemComponent({
   return (
     <div
       onClick={onSelect}
+      data-index={index}
       className={`p-3 rounded-lg cursor-pointer transition-colors ${
         isCurrent
           ? 'bg-primary/20 border border-primary/50'
