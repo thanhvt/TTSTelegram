@@ -62,6 +62,19 @@ interface AppState {
   toggleDialogSelection: (dialogId: string) => void;
   selectAllDialogs: () => void;
   deselectAllDialogs: () => void;
+  /**
+   * Giảm unreadCount của dialog đi 1
+   * @param dialogId - ID của dialog cần giảm
+   * @description Được gọi sau khi tin nhắn được đọc xong trong useAudioPlayer
+   */
+  decrementUnreadCount: (dialogId: string) => void;
+  /**
+   * Cập nhật unreadCount của dialog từ server
+   * @param dialogId - ID của dialog cần cập nhật
+   * @param count - Số lượng tin nhắn chưa đọc mới
+   * @description Được gọi khi manual refresh danh sách dialogs
+   */
+  updateDialogUnreadCount: (dialogId: string, count: number) => void;
 
   // Messages & Queue
   messages: Record<string, TelegramMessage[]>;
@@ -121,6 +134,26 @@ export const useAppStore = create<AppState>()(
             .map((d) => d.id),
         })),
       deselectAllDialogs: () => set({ selectedDialogIds: [] }),
+      /**
+       * Giảm unreadCount của dialog đi 1 khi tin nhắn được đọc xong
+       */
+      decrementUnreadCount: (dialogId) =>
+        set((state) => ({
+          dialogs: state.dialogs.map((d) =>
+            d.id === dialogId
+              ? { ...d, unreadCount: Math.max(0, d.unreadCount - 1) }
+              : d
+          ),
+        })),
+      /**
+       * Cập nhật unreadCount của dialog từ server
+       */
+      updateDialogUnreadCount: (dialogId, count) =>
+        set((state) => ({
+          dialogs: state.dialogs.map((d) =>
+            d.id === dialogId ? { ...d, unreadCount: count } : d
+          ),
+        })),
 
       // Messages & Queue
       messages: {},

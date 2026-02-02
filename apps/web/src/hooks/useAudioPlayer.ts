@@ -37,6 +37,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
     ttsProvider,
     selectedVoice,
     randomVoice,
+    decrementUnreadCount,
   } = useAppStore();
 
   const currentItem = queue[currentQueueIndex];
@@ -88,6 +89,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
             messagesApi.markAsRead(currentItem.message.dialogId, [currentItem.message.id])
               .then(() => {
                 console.log(`✅ Đã đánh dấu đọc tin nhắn ${currentItem.message.id}`);
+                // Giảm unreadCount của dialog để cập nhật UI realtime
+                decrementUnreadCount(currentItem.message.dialogId);
               })
               .catch((error) => {
                 // Lỗi đánh dấu đã đọc không ảnh hưởng đến flow chính
@@ -111,7 +114,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
       howl.play();
       howlRef.current = howl;
     },
-    [volume, playbackRate, currentItem, updateQueueItem, nextInQueue, setIsPlaying]
+    [volume, playbackRate, currentItem, updateQueueItem, nextInQueue, setIsPlaying, decrementUnreadCount]
   );
 
   /**

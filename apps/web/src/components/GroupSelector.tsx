@@ -85,9 +85,11 @@ export function GroupSelector() {
    * - Áp dụng filter theo type, search và sắp xếp
    */
   const filteredDialogs = useMemo(() => {
-    // Bước 1: Loại bỏ Chat cá nhân (user type) và những bản ghi không có tin nhắn mới
+    // Bước 1: Loại bỏ Chat cá nhân (user type), giữ lại:
+    // - Những bản ghi có tin nhắn mới (unreadCount > 0)
+    // - HOẶC những bản ghi đang được selected (để user không mất track)
     const groupsAndChannels = dialogs.filter(
-      (d) => d.type !== 'user' && d.unreadCount > 0
+      (d) => d.type !== 'user' && (d.unreadCount > 0 || selectedDialogIds.includes(d.id))
     );
     
     // Bước 2: Filter theo type được chọn
@@ -118,7 +120,7 @@ export function GroupSelector() {
         return dateB - dateA;
       }
     });
-  }, [dialogs, filterType, searchQuery, sortBy]);
+  }, [dialogs, filterType, searchQuery, sortBy, selectedDialogIds]);
 
   /**
    * Đếm số lượng theo type (chỉ đếm Groups và Channels có tin nhắn mới)

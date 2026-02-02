@@ -16,6 +16,7 @@ import { AudioPlayer } from './components/AudioPlayer';
 import { MessageQueue } from './components/MessageQueue';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { TTSSettings } from './components/TTSSettings';
+import { TTSStatusBadge } from './components/TTSStatusBadge';
 
 export default function App() {
   const {
@@ -146,6 +147,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
+            <TTSStatusBadge />
             <TTSSettings />
             <KeyboardShortcutsHelp />
 
