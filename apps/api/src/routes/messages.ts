@@ -97,7 +97,8 @@ router.post('/batch', async (req: Request, res: Response<ApiResponse<Record<stri
     // Lấy messages từ từng dialog
     for (const dialogId of limitedDialogIds) {
       try {
-        result[dialogId] = await telegramService.getMessages(dialogId, Math.min(limit, 100));
+        // Tăng giới hạn lên 300 để phù hợp với single endpoint và hỗ trợ nhiều tin nhắn chưa đọc hơn
+        result[dialogId] = await telegramService.getMessages(dialogId, Math.min(limit, 300));
         // Delay nhỏ để tránh rate limit
         await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
@@ -105,6 +106,10 @@ router.post('/batch', async (req: Request, res: Response<ApiResponse<Record<stri
         result[dialogId] = [];
       }
     }
+
+    // Log kết quả để debug
+    const totalMessages = Object.values(result).reduce((sum, msgs) => sum + msgs.length, 0);
+    console.log(`📊 Batch messages: ${totalMessages} tin nhắn từ ${limitedDialogIds.length} dialogs (limit: ${limit})`);
 
     res.json({
       success: true,

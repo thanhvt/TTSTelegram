@@ -16,6 +16,7 @@ import { TextToSpeechClient, protos } from '@google-cloud/text-to-speech';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { normalizeText } from '@tts-telegram/shared/TextNormalizationService.js';
 
 // ============================================
 // TYPES
@@ -474,6 +475,20 @@ class TTSService {
       throw new Error('Text không được để trống');
     }
 
+    // ✨ Chuẩn hóa text: teencode/slang -> formal Vietnamese
+    // Ví dụ: "ko đc cm" -> "không được chúng mày"
+    const normalizedText = normalizeText(text, {
+      normalizeTeencode: true,
+      filterProfanity: true, // Replace từ không phù hợp bằng placeholder
+    });
+    
+    // Log nếu có thay đổi
+    if (normalizedText !== text) {
+      console.log(`📝 TTS: Normalized text`);
+      console.log(`   Original: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
+      console.log(`   Normalized: "${normalizedText.substring(0, 100)}${normalizedText.length > 100 ? '...' : ''}"`);
+    }
+
     // Fallback nếu OpenAI không khả dụng
     if (provider === 'openai' && !this.openaiClient) {
       console.log('⚠️ TTS: Fallback từ OpenAI sang Google');
@@ -507,9 +522,9 @@ class TTSService {
       }
     }
 
-    // Giới hạn text
+    // Giới hạn text (sử dụng normalizedText thay vì text gốc)
     const maxLength = 5000;
-    const truncatedText = text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    const truncatedText = normalizedText.length > maxLength ? normalizedText.substring(0, maxLength) + '...' : normalizedText;
 
     const id = uuidv4();
     const filename = `${id}.mp3`;

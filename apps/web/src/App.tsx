@@ -148,7 +148,8 @@ export default function App() {
       // Sắp xếp theo thời gian (cũ nhất trước)
       queueItems.sort((a, b) => a.message.date.getTime() - b.message.date.getTime());
 
-      console.log(`📋 Queue: ${queueItems.length} tin nhắn`);
+      console.log(`📊 API response: ${Object.values(messagesData).flat().length} tin nhắn`);
+      console.log(`📋 Queue: ${queueItems.length} tin nhắn sau khi filter theo unreadCount`);
       addToQueue(queueItems);
     } catch (error) {
       console.error('Lỗi lấy messages:', error);
