@@ -52,8 +52,22 @@ interface AppState {
   // Auth
   authStatus: AuthStatus;
   phoneNumber: string;
+  /**
+   * Session string của Telegram để khôi phục đăng nhập
+   * @description Được lưu vào localStorage sau khi đăng nhập thành công
+   */
+  sessionString: string;
   setAuthStatus: (status: AuthStatus) => void;
   setPhoneNumber: (phone: string) => void;
+  /**
+   * Lưu session string sau khi đăng nhập thành công
+   * @param session - Chuỗi session từ Telegram API
+   */
+  setSessionString: (session: string) => void;
+  /**
+   * Xóa session string khi đăng xuất
+   */
+  clearSessionString: () => void;
 
   // Dialogs
   dialogs: TelegramDialog[];
@@ -114,8 +128,11 @@ export const useAppStore = create<AppState>()(
       // Auth
       authStatus: 'disconnected' as AuthStatus,
       phoneNumber: '+84376340112', // Số điện thoại mặc định của anh Thành
+      sessionString: '', // Session string để khôi phục sau khi reload
       setAuthStatus: (status: AuthStatus) => set({ authStatus: status }),
       setPhoneNumber: (phone: string) => set({ phoneNumber: phone }),
+      setSessionString: (session: string) => set({ sessionString: session }),
+      clearSessionString: () => set({ sessionString: '' }),
 
       // Dialogs
       dialogs: [],
@@ -223,6 +240,8 @@ export const useAppStore = create<AppState>()(
         selectedVoice: state.selectedVoice,
         randomVoice: state.randomVoice,
         theme: state.theme,
+        sessionString: state.sessionString, // Persist session để auto-login
+        phoneNumber: state.phoneNumber, // Persist số điện thoại
       }),
       // Migrate từ version cũ
       migrate: (persistedState: unknown, version: number) => {

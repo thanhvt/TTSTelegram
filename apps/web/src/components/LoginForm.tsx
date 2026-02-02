@@ -1,16 +1,10 @@
-/**
- * LoginForm - Form đăng nhập Telegram
- *
- * @description Xử lý flow: nhập SĐT → nhập OTP → nhập 2FA (nếu có)
- */
-
 import { useState } from 'react';
 import { Phone, Key, Lock, Loader2, CheckCircle } from 'lucide-react';
 import { authApi } from '../lib/api';
-import { useAppStore, AuthStatus } from '../stores/appStore';
+import { useAppStore } from '../stores/appStore';
 
 export function LoginForm() {
-  const { authStatus, setAuthStatus, phoneNumber, setPhoneNumber } = useAppStore();
+  const { authStatus, setAuthStatus, phoneNumber, setPhoneNumber, setSessionString } = useAppStore();
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +30,7 @@ export function LoginForm() {
 
   /**
    * Xác nhận mã OTP và đăng nhập
+   * Sau khi thành công, lưu sessionString vào store để tự động đăng nhập lại sau
    */
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +38,14 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      await authApi.signIn(phoneNumber, code, password || undefined);
+      const { sessionString } = await authApi.signIn(phoneNumber, code, password || undefined);
+      
+      // Lưu session vào store (sẽ được persist vào localStorage)
+      if (sessionString) {
+        setSessionString(sessionString);
+        console.log('✅ Đã lưu session vào localStorage');
+      }
+      
       setAuthStatus('connected');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Đăng nhập thất bại';

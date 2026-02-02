@@ -9,12 +9,12 @@
  *   POST /api/auth/logout - Đăng xuất
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, type IRouter } from 'express';
 import { z } from 'zod';
 import { telegramService } from '../services/telegram.js';
 import type { ApiResponse, AuthState } from '@tts-telegram/shared';
 
-const router = Router();
+const router: IRouter = Router();
 
 // Validation schemas
 const sendCodeSchema = z.object({
@@ -126,6 +126,41 @@ router.post('/logout', async (_req: Request, res: Response<ApiResponse>) => {
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Lỗi đăng xuất',
+    });
+  }
+});
+
+/**
+ * POST /api/auth/restore
+ * Khôi phục session từ string đã lưu ở frontend
+ * 
+ * @body { sessionString: string } - Chuỗi session từ localStorage
+ * @returns { success: boolean, data: { restored: boolean } }
+ * @description Được gọi khi frontend load và có session trong localStorage
+ */
+router.post('/restore', async (req: Request, res: Response<ApiResponse<{ restored: boolean }>>) => {
+  try {
+    const { sessionString } = req.body as { sessionString?: string };
+
+    if (!sessionString) {
+      res.json({
+        success: true,
+        data: { restored: false },
+      });
+      return;
+    }
+
+    const restored = await telegramService.restoreSession(sessionString);
+
+    res.json({
+      success: true,
+      data: { restored },
+    });
+  } catch (error) {
+    console.error('Lỗi khôi phục session:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Không thể khôi phục session',
     });
   }
 });

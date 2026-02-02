@@ -26,9 +26,12 @@ export default function App() {
     dialogs,
     addToQueue,
     clearQueue,
+    sessionString,
+    clearSessionString,
   } = useAppStore();
 
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isRestoringSession, setIsRestoringSession] = useState(false);
   const { seekRelative, togglePlayPause } = useAudioPlayer();
 
   // Đăng ký keyboard shortcuts
@@ -37,12 +40,49 @@ export default function App() {
     onSeek: seekRelative,
   });
 
-  // Kiểm tra auth status khi mount
+  /**
+   * Kiểm tra auth status và tự động khôi phục session từ localStorage
+   * @description Chạy khi app mount. Nếu có sessionString đã lưu, gửi lên server để restore
+   */
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Bước 1: Kiểm tra status hiện tại từ server
         const { status } = await authApi.getStatus();
-        setAuthStatus(status as typeof authStatus);
+        
+        // Nếu đã connected thì không cần restore
+        if (status === 'connected') {
+          setAuthStatus(status as typeof authStatus);
+          return;
+        }
+
+        // Bước 2: Nếu chưa connected nhưng có session đã lưu, thử restore
+        if (sessionString) {
+          console.log('🔄 Đang khôi phục session từ localStorage...');
+          setIsRestoringSession(true);
+          
+          try {
+            const { restored } = await authApi.restoreSession(sessionString);
+            
+            if (restored) {
+              console.log('✅ Khôi phục session thành công! Không cần đăng nhập lại.');
+              setAuthStatus('connected');
+            } else {
+              console.log('⚠️ Session hết hạn, cần đăng nhập lại');
+              clearSessionString(); // Xóa session không còn hợp lệ
+              setAuthStatus('awaiting_phone');
+            }
+          } catch (restoreError) {
+            console.error('❌ Lỗi khôi phục session:', restoreError);
+            clearSessionString();
+            setAuthStatus('awaiting_phone');
+          } finally {
+            setIsRestoringSession(false);
+          }
+        } else {
+          // Không có session đã lưu
+          setAuthStatus(status as typeof authStatus);
+        }
       } catch (error) {
         console.error('Lỗi kiểm tra auth:', error);
         setAuthStatus('awaiting_phone');
@@ -50,7 +90,7 @@ export default function App() {
     };
 
     checkAuth();
-  }, [setAuthStatus]);
+  }, [setAuthStatus, sessionString, clearSessionString]);
 
   /**
    * Lấy tin nhắn và thêm vào queue
@@ -119,17 +159,33 @@ export default function App() {
   };
 
   /**
-   * Đăng xuất
+   * Đăng xuất và xóa session
+   * @description Clear sessionString khỏi localStorage để không tự động đăng nhập lại
    */
   const handleLogout = async () => {
     try {
       await authApi.logout();
+      clearSessionString(); // Xóa session khỏi localStorage
       setAuthStatus('awaiting_phone');
       clearQueue();
+      console.log('👋 Đã đăng xuất và xóa session');
     } catch (error) {
       console.error('Lỗi đăng xuất:', error);
     }
   };
+
+  // Hiển thị loading khi đang khôi phục session
+  if (isRestoringSession) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Đang khôi phục phiên đăng nhập...</h2>
+          <p className="text-gray-400">Vui lòng chờ trong giây lát</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -13,6 +13,9 @@ importers:
       '@google-cloud/text-to-speech':
         specifier: ^6.4.0
         version: 6.4.0
+      '@tts-telegram/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       cors:
         specifier: ^2.8.5
         version: 2.8.6

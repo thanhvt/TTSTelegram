@@ -336,6 +336,58 @@ class TelegramService {
   }
 
   /**
+   * Khôi phục session từ string được gửi từ frontend
+   * 
+   * @param sessionString - Chuỗi session đã lưu từ trước
+   * @returns Promise<boolean> - true nếu khôi phục thành công, false nếu session không hợp lệ
+   * @description Được gọi khi frontend load và có session trong localStorage
+   */
+  async restoreSession(sessionString: string): Promise<boolean> {
+    if (!sessionString) {
+      console.log('⚠️ Telegram: Không có session để khôi phục');
+      return false;
+    }
+
+    try {
+      // Tạo session mới từ string
+      this.session = new StringSession(sessionString);
+      
+      // Disconnect client cũ nếu có
+      if (this.client) {
+        await this.client.disconnect();
+        this.client = null;
+      }
+
+      // Tạo client mới với session đã khôi phục
+      this.client = new TelegramClient(this.session, APP_ID, API_HASH, {
+        connectionRetries: 5,
+      });
+
+      await this.client.connect();
+
+      // Kiểm tra session có hợp lệ không
+      const isAuthorized = await this.client.isUserAuthorized();
+
+      if (isAuthorized) {
+        this._status = 'connected';
+        console.log('✅ Telegram: Đã khôi phục session từ frontend thành công');
+        return true;
+      } else {
+        // Session không còn hợp lệ
+        this._status = 'awaiting_phone';
+        this.session = new StringSession('');
+        console.log('⚠️ Telegram: Session hết hạn, cần đăng nhập lại');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Telegram: Lỗi khôi phục session:', error);
+      this._status = 'disconnected';
+      this.session = new StringSession('');
+      return false;
+    }
+  }
+
+  /**
    * Đăng xuất và xóa session
    */
   async logout(): Promise<void> {

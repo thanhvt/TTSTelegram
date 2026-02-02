@@ -4,7 +4,7 @@
  * @description Hiển thị danh sách groups/channels với checkbox
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Search,
   Users,
@@ -240,7 +240,11 @@ export function GroupSelector() {
 }
 
 /**
- * DialogItem - Hiển thị một dialog
+ * DialogItem - Hiển thị một dialog với animation badge
+ * @param dialog - Dialog data
+ * @param isSelected - Có đang được chọn hay không
+ * @param onToggle - Callback khi toggle selection
+ * @description Animation pulse sẽ chạy khi unreadCount giảm
  */
 function DialogItem({
   dialog,
@@ -252,15 +256,28 @@ function DialogItem({
   onToggle: () => void;
 }) {
   const Icon = TYPE_ICONS[dialog.type] || User;
+  const prevUnreadRef = useRef(dialog.unreadCount);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Detect khi unreadCount giảm để trigger animation
+  useEffect(() => {
+    if (dialog.unreadCount < prevUnreadRef.current) {
+      // Số đã giảm, trigger animation
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 400);
+      return () => clearTimeout(timer);
+    }
+    prevUnreadRef.current = dialog.unreadCount;
+  }, [dialog.unreadCount]);
 
   return (
     <button
       onClick={onToggle}
-      className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${
+      className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-300 text-left ${
         isSelected
           ? 'bg-primary/20 border border-primary/50'
           : 'bg-surface-light/50 hover:bg-surface-light border border-transparent'
-      }`}
+      } ${dialog.unreadCount === 0 ? 'opacity-60' : ''}`}
     >
       {/* Checkbox - Tăng kích thước từ 20px lên 24px để dễ tap hơn trên mobile */}
       <div
@@ -289,9 +306,17 @@ function DialogItem({
         <div className="font-medium text-white truncate">{dialog.title}</div>
         <div className="text-xs text-gray-500 flex items-center gap-2">
           <span>{TYPE_LABELS[dialog.type]}</span>
-          {dialog.unreadCount > 0 && (
-            <span className="px-2 py-0.5 bg-amber-500 rounded-full text-slate-900 font-semibold text-[11px]">
+          {dialog.unreadCount > 0 ? (
+            <span 
+              className={`px-2 py-0.5 bg-amber-500 rounded-full text-slate-900 font-semibold text-[11px] transition-transform ${
+                isAnimating ? 'animate-pulse scale-110' : ''
+              }`}
+            >
               {dialog.unreadCount > 999 ? '999+' : dialog.unreadCount} chưa đọc
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 bg-green-500/80 rounded-full text-white font-semibold text-[11px]">
+              ✓ Đã đọc hết
             </span>
           )}
         </div>

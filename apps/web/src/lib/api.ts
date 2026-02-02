@@ -72,6 +72,19 @@ export const authApi = {
     fetchApi<{ message: string }>('/auth/logout', {
       method: 'POST',
     }),
+
+  /**
+   * Khôi phục session từ localStorage
+   * 
+   * @param sessionString - Chuỗi session đã lưu
+   * @returns { restored: boolean } - true nếu khôi phục thành công
+   * @description Gọi khi app load để tự động đăng nhập lại
+   */
+  restoreSession: (sessionString: string) =>
+    fetchApi<{ restored: boolean }>('/auth/restore', {
+      method: 'POST',
+      body: JSON.stringify({ sessionString }),
+    }),
 };
 
 // ============================================
