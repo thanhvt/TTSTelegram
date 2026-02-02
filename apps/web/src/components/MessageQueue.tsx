@@ -54,14 +54,14 @@ export function MessageQueue() {
     if (currentQueueIndex >= 0 && currentQueueIndex < queue.length) {
       const currentElement = queueListRef.current?.querySelector(`[data-index="${currentQueueIndex}"]`);
       if (currentElement) {
-        currentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        currentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
   }, [currentQueueIndex, queue.length]);
 
   if (queue.length === 0) {
     return (
-      <div className="card h-full flex flex-col">
+      <div className="card flex flex-col">
         <h2 className="text-lg font-semibold text-white mb-4">Queue</h2>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center px-6">
@@ -88,7 +88,7 @@ export function MessageQueue() {
   }
 
   return (
-    <div className="card h-full flex flex-col">
+    <div className="card flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-white">

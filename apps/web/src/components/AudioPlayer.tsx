@@ -93,7 +93,7 @@ export function AudioPlayer() {
   }
 
   return (
-    <div className="card bg-gradient-to-r from-surface to-surface-light h-full flex flex-col">
+    <div className="card bg-gradient-to-r from-surface to-surface-light flex flex-col">
       {/* Now Playing Info */}
       <div className="mb-4 flex-shrink-0">
         <div className="flex items-center gap-3">

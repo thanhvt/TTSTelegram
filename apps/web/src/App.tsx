@@ -223,7 +223,7 @@ export default function App() {
       </header>
 
       {/* Main Content - Flex container để panels fill full height */}
-      <main className="flex-1 overflow-hidden max-w-7xl mx-auto px-2 py-4 w-full flex flex-col">
+      <main className="flex-1 min-h-0 overflow-hidden max-w-7xl mx-auto px-2 py-4 w-full flex flex-col">
         {authStatus !== 'connected' ? (
           // Login Screen
           <div className="max-w-md mx-auto py-12">
@@ -231,16 +231,16 @@ export default function App() {
           </div>
         ) : (
           // Main App - Grid layout responsive với collapsed state
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
-            {/* Left Column: Group Selector - Dynamic width dựa vào collapsed state */}
-            <div className={`transition-all duration-300 ease-in-out ${
-              isGroupSelectorCollapsed ? 'lg:col-span-1' : 'lg:col-span-5'
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full min-h-0">
+            {/* Left Column: Group Selector - Dynamic width với explicit height */}
+            <div className={`transition-all duration-300 ease-in-out h-[calc(100vh-10rem)] ${
+              isGroupSelectorCollapsed ? 'lg:col-span-1' : 'lg:col-span-3'
             }`}>
               <GroupSelector />
             </div>
 
             {/* Right Column: Player & Queue - Flexible height */}
-            <div className="lg:col-span-7 flex flex-col gap-4">
+            <div className="lg:col-span-9 flex flex-col gap-4 h-full min-h-0">
               {/* Start Reading Button */}
               <button
                 onClick={handleStartReading}
@@ -260,15 +260,15 @@ export default function App() {
                 )}
               </button>
 
-              {/* SPLIT VIEW: Player 40% | Queue 60% - Full height */}
-              <div className="flex gap-4 flex-1 min-h-0">
-                {/* Player Section - 40% width */}
-                <div className="w-[40%] flex-shrink-0">
+              {/* SPLIT VIEW: Player 40% | Queue 60% - Explicit viewport height */}
+              <div className="flex gap-4 h-[calc(100vh-15rem)] mb-3">
+                {/* Player Section - 40% width with scroll */}
+                <div className="w-[40%] flex-shrink-0 max-h-full overflow-y-auto">
                   <AudioPlayer />
                 </div>
 
-                {/* Queue Section - 60% width (flex-1 auto-grow) */}
-                <div className="flex-1">
+                {/* Queue Section - 60% width with scroll */}
+                <div className="flex-1 max-h-full overflow-y-auto">
                   <MessageQueue />
                 </div>
               </div>
