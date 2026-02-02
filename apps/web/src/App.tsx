@@ -188,9 +188,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="border-b border-surface-light bg-surface/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-surface-light bg-surface/50 backdrop-blur-sm flex-shrink-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
@@ -221,7 +221,7 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="flex-1 overflow-auto max-w-7xl mx-auto px-4 py-6 w-full">
         {authStatus !== 'connected' ? (
           // Login Screen
           <div className="max-w-md mx-auto py-12">
@@ -269,7 +269,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-surface-light py-4 mt-8">
+      <footer className="border-t border-surface-light py-4 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
           <p>
             TTS Telegram Reader • Made with ❤️ •{' '}
