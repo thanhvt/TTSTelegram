@@ -146,8 +146,10 @@ export const useAppStore = create<AppState>()(
         const state = get();
         // Đảm bảo dialogs là mảng, tránh lỗi khi state bị undefined
         const dialogList = state.dialogs ?? [];
-        const sorted = [...dialogList];
+        let sorted = [...dialogList];
         if (state.sortBy === 'unread') {
+          // Filter bỏ groups đã đọc hết (unreadCount = 0)
+          sorted = sorted.filter((d) => d.unreadCount > 0);
           // Sắp xếp theo số tin chưa đọc (nhiều nhất trước)
           sorted.sort((a, b) => b.unreadCount - a.unreadCount);
         } else {

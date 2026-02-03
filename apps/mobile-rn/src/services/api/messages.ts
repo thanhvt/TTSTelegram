@@ -11,10 +11,6 @@ import { TelegramMessage } from '../../stores/appStore';
 // TYPES
 // ============================================
 
-interface MessagesResponse {
-  messages: TelegramMessage[];
-}
-
 interface MarkAsReadRequest {
   messageIds: number[];
 }
@@ -34,10 +30,13 @@ export async function getMessages(
   dialogId: string,
   limit: number = 50
 ): Promise<TelegramMessage[]> {
-  const response = await apiClient<MessagesResponse>(
+  // API trả về array messages trực tiếp (đã được unwrap từ data.data trong client.ts)
+  const messages = await apiClient<TelegramMessage[]>(
     `/messages/${dialogId}?limit=${limit}`
   );
-  return response.messages;
+  
+  // Đảm bảo luôn trả về array
+  return Array.isArray(messages) ? messages : [];
 }
 
 /**

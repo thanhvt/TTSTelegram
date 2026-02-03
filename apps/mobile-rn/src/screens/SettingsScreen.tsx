@@ -4,7 +4,7 @@
  * @description Quản lý voice, playback speed, theme, và logout
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,13 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Modal,
+  FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { useAppStore, TTSProvider } from '../stores/appStore';
+import { useVoices, Voice } from '../hooks/useVoices';
 import { authStore } from '../stores/authStore';
 import { ThemeType, themes } from '../theme';
 import { spacing, borderRadius, touchTarget, typography } from '../theme';
@@ -27,10 +31,35 @@ export default function SettingsScreen() {
     playbackRate,
     theme: currentTheme,
     setTtsProvider,
+    setSelectedVoice,
     setPlaybackRate,
     setTheme,
     setAuthStatus,
   } = useAppStore();
+
+  // Voice picker state
+  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
+  const { voices, isLoading: voicesLoading, getVoicesByProvider } = useVoices();
+
+  // Lấy danh sách voices theo provider hiện tại
+  const availableVoices = getVoicesByProvider(ttsProvider);
+
+  /**
+   * Xử lý chọn voice
+   * @param voice - Voice được chọn
+   */
+  const handleSelectVoice = (voice: Voice) => {
+    setSelectedVoice(voice.id);
+    setVoiceModalVisible(false);
+  };
+
+  /**
+   * Lấy tên hiển thị của voice đang chọn
+   */
+  const getVoiceDisplayName = (): string => {
+    const voice = voices.find((v) => v.id === selectedVoice);
+    return voice ? `${voice.name} (${voice.gender === 'Male' ? '♂' : '♀'})` : selectedVoice;
+  };
 
   /**
    * Xử lý đăng xuất
@@ -87,12 +116,19 @@ export default function SettingsScreen() {
             </Text>
           </View>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          <View style={styles.row}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setVoiceModalVisible(true)}
+            activeOpacity={0.7}
+          >
             <Text style={[styles.label, { color: theme.text }]}>Voice</Text>
-            <Text style={[styles.value, { color: theme.textSecondary }]}>
-              {selectedVoice}
-            </Text>
-          </View>
+            <View style={styles.valueRow}>
+              <Text style={[styles.value, { color: theme.textSecondary }]}>
+                {getVoiceDisplayName()}
+              </Text>
+              <Text style={[styles.chevron, { color: theme.textSecondary }]}>›</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -170,6 +206,72 @@ export default function SettingsScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Voice Picker Modal */}
+      <Modal
+        visible={voiceModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setVoiceModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Chọn giọng đọc</Text>
+              <TouchableOpacity
+                onPress={() => setVoiceModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {voicesLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+                  Đang tải danh sách giọng đọc...
+                </Text>
+              </View>
+            ) : availableVoices.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                  Không có giọng đọc nào cho provider {ttsProvider}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={availableVoices}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.voiceItem,
+                      selectedVoice === item.id && { backgroundColor: theme.surfaceHover }
+                    ]}
+                    onPress={() => handleSelectVoice(item)}
+                  >
+                    <View style={styles.voiceInfo}>
+                      <Text style={[styles.voiceName, { color: theme.text }]}>
+                        {item.name}
+                      </Text>
+                      <Text style={[styles.voiceMeta, { color: theme.textSecondary }]}>
+                        {item.gender === 'Male' ? '♂ Nam' : '♀ Nữ'} • {item.provider}
+                      </Text>
+                    </View>
+                    {selectedVoice === item.id && (
+                      <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => (
+                  <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -245,5 +347,79 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     ...typography.button,
+  },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  chevron: {
+    fontSize: 20,
+    fontWeight: '300',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    maxHeight: '70%',
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    paddingBottom: spacing['4xl'],
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  modalTitle: {
+    ...typography.h3,
+    fontWeight: '600',
+  },
+  closeButton: {
+    padding: spacing.sm,
+  },
+  closeButtonText: {
+    fontSize: 18,
+  },
+  loadingContainer: {
+    padding: spacing['4xl'],
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    ...typography.body,
+  },
+  emptyContainer: {
+    padding: spacing['4xl'],
+    alignItems: 'center',
+  },
+  emptyText: {
+    ...typography.body,
+    textAlign: 'center',
+  },
+  voiceItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minHeight: touchTarget.min,
+  },
+  voiceInfo: {
+    flex: 1,
+  },
+  voiceName: {
+    ...typography.body,
+    fontWeight: '500',
+  },
+  voiceMeta: {
+    ...typography.caption,
+    marginTop: spacing.xs,
   },
 });

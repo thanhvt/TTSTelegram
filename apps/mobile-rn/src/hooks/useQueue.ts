@@ -58,6 +58,12 @@ export function useQueue() {
             dialog.unreadCount > 0 ? dialog.unreadCount : 20 // Lấy ít nhất 20 nếu không có unread
           );
 
+          // Kiểm tra messages là mảng hợp lệ
+          if (!Array.isArray(messages) || messages.length === 0) {
+            console.warn(`Không có tin nhắn từ ${dialog.title}`);
+            continue;
+          }
+
           // Chuyển đổi thành QueueItems
           const queueItems: QueueItem[] = messages.map((msg: TelegramMessage) => ({
             id: `${dialogId}-${msg.id}`,
