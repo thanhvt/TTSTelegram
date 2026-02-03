@@ -4,7 +4,7 @@
  * @description Quản lý voice, playback speed, theme, và logout
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,9 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  Modal,
-  FlatList,
   ActivityIndicator,
 } from 'react-native';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { useTheme } from '../hooks/useTheme';
 import { useAppStore, TTSProvider } from '../stores/appStore';
 import { useVoices, Voice } from '../hooks/useVoices';
@@ -39,9 +38,26 @@ export default function SettingsScreen() {
     setAuthStatus,
   } = useAppStore();
 
-  // Modal states
-  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
-  const [providerModalVisible, setProviderModalVisible] = useState(false);
+  // Bottom Sheet refs
+  const voiceSheetRef = useRef<BottomSheet>(null);
+  const providerSheetRef = useRef<BottomSheet>(null);
+
+  // Bottom Sheet snap points (50% và 90% màn hình)
+  const snapPoints = useMemo(() => ['50%', '90%'], []);
+  const providerSnapPoints = useMemo(() => ['40%'], []);
+
+  // Render backdrop với hiệu ứng mờ
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.5}
+      />
+    ),
+    []
+  );
   
   // Voices data
   const { 
@@ -61,7 +77,7 @@ export default function SettingsScreen() {
    */
   const handleSelectVoice = (voice: Voice) => {
     setSelectedVoice(voice.id);
-    setVoiceModalVisible(false);
+    voiceSheetRef.current?.close();
   };
 
   /**
@@ -78,7 +94,7 @@ export default function SettingsScreen() {
       return;
     }
     setTtsProvider(provider);
-    setProviderModalVisible(false);
+    providerSheetRef.current?.close();
   };
 
   /**
@@ -162,7 +178,7 @@ export default function SettingsScreen() {
           {/* Provider Selection */}
           <TouchableOpacity
             style={styles.row}
-            onPress={() => setProviderModalVisible(true)}
+            onPress={() => providerSheetRef.current?.expand()}
             activeOpacity={0.7}
           >
             <Text style={[styles.label, { color: theme.text }]}>Provider</Text>
@@ -179,7 +195,7 @@ export default function SettingsScreen() {
           {/* Voice Selection */}
           <TouchableOpacity
             style={[styles.row, randomVoice && styles.disabledRow]}
-            onPress={() => !randomVoice && setVoiceModalVisible(true)}
+            onPress={() => !randomVoice && voiceSheetRef.current?.expand()}
             activeOpacity={randomVoice ? 1 : 0.7}
             disabled={randomVoice}
           >
@@ -298,171 +314,172 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Voice Picker Modal */}
-      <Modal
-        visible={voiceModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setVoiceModalVisible(false)}
+      {/* Voice Picker Bottom Sheet */}
+      <BottomSheet
+        ref={voiceSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        enablePanDownToClose={true}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ backgroundColor: theme.surface }}
+        handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Chọn giọng đọc</Text>
-              <TouchableOpacity
-                onPress={() => setVoiceModalVisible(false)}
-                style={styles.closeButton}
-              >
-                <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
+        <View style={[styles.sheetHeader, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.sheetTitle, { color: theme.text }]}>Chọn giọng đọc</Text>
+          <TouchableOpacity
+            onPress={() => voiceSheetRef.current?.close()}
+            style={styles.closeButton}
+          >
+            <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>✕</Text>
+          </TouchableOpacity>
+        </View>
 
-            {voicesLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={theme.primary} />
-                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-                  Đang tải danh sách giọng đọc...
-                </Text>
-              </View>
-            ) : availableVoices.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                  Không có giọng đọc nào cho provider {ttsProvider}
-                </Text>
-              </View>
-            ) : (
-              <FlatList
-                data={availableVoices}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.voiceItem,
-                      selectedVoice === item.id && { backgroundColor: theme.surfaceHover }
-                    ]}
-                    onPress={() => handleSelectVoice(item)}
-                  >
-                    <View style={styles.voiceInfo}>
-                      <Text style={[styles.voiceName, { color: theme.text }]}>
-                        {item.name}
-                      </Text>
-                      <Text style={[styles.voiceMeta, { color: theme.textSecondary }]}>
-                        {item.gender === 'Male' ? '♂ Nam' : '♀ Nữ'} • {item.provider}
-                      </Text>
-                    </View>
-                    {selectedVoice === item.id && (
-                      <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
-                    )}
-                  </TouchableOpacity>
+        {voicesLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+              Đang tải danh sách giọng đọc...
+            </Text>
+          </View>
+        ) : availableVoices.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              Không có giọng đọc nào cho provider {ttsProvider}
+            </Text>
+          </View>
+        ) : (
+          <BottomSheetFlatList
+            data={availableVoices}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.voiceItem,
+                  selectedVoice === item.id && { backgroundColor: theme.surfaceHover }
+                ]}
+                onPress={() => handleSelectVoice(item)}
+              >
+                <View style={styles.voiceInfo}>
+                  <Text style={[styles.voiceName, { color: theme.text }]}>
+                    {item.name}
+                  </Text>
+                  <Text style={[styles.voiceMeta, { color: theme.textSecondary }]}>
+                    {item.gender === 'Male' ? '♂ Nam' : '♀ Nữ'} • {item.provider}
+                  </Text>
+                </View>
+                {selectedVoice === item.id && (
+                  <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
                 )}
-                ItemSeparatorComponent={() => (
-                  <View style={[styles.divider, { backgroundColor: theme.border }]} />
-                )}
-              />
+              </TouchableOpacity>
             )}
-          </View>
-        </View>
-      </Modal>
+            ItemSeparatorComponent={() => (
+              <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            )}
+            contentContainerStyle={styles.sheetListContent}
+          />
+        )}
+      </BottomSheet>
 
-      {/* Provider Picker Modal */}
-      <Modal
-        visible={providerModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setProviderModalVisible(false)}
+      {/* Provider Picker Bottom Sheet */}
+      <BottomSheet
+        ref={providerSheetRef}
+        index={-1}
+        snapPoints={providerSnapPoints}
+        enablePanDownToClose={true}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ backgroundColor: theme.surface }}
+        handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Chọn Provider</Text>
-              <TouchableOpacity
-                onPress={() => setProviderModalVisible(false)}
-                style={styles.closeButton}
-              >
-                <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Google Free */}
-            <TouchableOpacity
-              style={[
-                styles.providerItem,
-                ttsProvider === 'google' && { backgroundColor: theme.surfaceHover }
-              ]}
-              onPress={() => handleProviderChange('google')}
-            >
-              <Text style={styles.providerIcon}>🔊</Text>
-              <View style={styles.providerInfo}>
-                <Text style={[styles.providerName, { color: theme.text }]}>Google</Text>
-                <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
-                  Miễn phí • Ổn định
-                </Text>
-              </View>
-              {ttsProvider === 'google' && (
-                <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-            {/* Google Cloud */}
-            <TouchableOpacity
-              style={[
-                styles.providerItem,
-                !googleCloudAvailable && styles.providerDisabled,
-                ttsProvider === 'google-cloud' && { backgroundColor: theme.surfaceHover }
-              ]}
-              onPress={() => handleProviderChange('google-cloud')}
-            >
-              <Text style={styles.providerIcon}>☁️</Text>
-              <View style={styles.providerInfo}>
-                <Text style={[styles.providerName, { color: googleCloudAvailable ? theme.text : theme.textSecondary }]}>
-                  Google Cloud
-                </Text>
-                <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
-                  Premium • Chất lượng cao
-                </Text>
-              </View>
-              {!googleCloudAvailable ? (
-                <Text style={[styles.providerBadge, { backgroundColor: theme.surfaceHover, color: theme.textSecondary }]}>
-                  API Key
-                </Text>
-              ) : ttsProvider === 'google-cloud' ? (
-                <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
-              ) : null}
-            </TouchableOpacity>
-
-            <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-            {/* OpenAI */}
-            <TouchableOpacity
-              style={[
-                styles.providerItem,
-                !openaiAvailable && styles.providerDisabled,
-                ttsProvider === 'openai' && { backgroundColor: theme.surfaceHover }
-              ]}
-              onPress={() => handleProviderChange('openai')}
-            >
-              <Text style={styles.providerIcon}>✨</Text>
-              <View style={styles.providerInfo}>
-                <Text style={[styles.providerName, { color: openaiAvailable ? theme.text : theme.textSecondary }]}>
-                  OpenAI
-                </Text>
-                <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
-                  Đa ngôn ngữ • Tự nhiên
-                </Text>
-              </View>
-              {!openaiAvailable ? (
-                <Text style={[styles.providerBadge, { backgroundColor: theme.surfaceHover, color: theme.textSecondary }]}>
-                  API Key
-                </Text>
-              ) : ttsProvider === 'openai' ? (
-                <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
-              ) : null}
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.sheetHeader, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.sheetTitle, { color: theme.text }]}>Chọn Provider</Text>
+          <TouchableOpacity
+            onPress={() => providerSheetRef.current?.close()}
+            style={styles.closeButton}
+          >
+            <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>✕</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+
+        <View style={styles.sheetContent}>
+          {/* Google Free */}
+          <TouchableOpacity
+            style={[
+              styles.providerItem,
+              ttsProvider === 'google' && { backgroundColor: theme.surfaceHover }
+            ]}
+            onPress={() => handleProviderChange('google')}
+          >
+            <Text style={styles.providerIcon}>🔊</Text>
+            <View style={styles.providerInfo}>
+              <Text style={[styles.providerName, { color: theme.text }]}>Google</Text>
+              <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
+                Miễn phí • Ổn định
+              </Text>
+            </View>
+            {ttsProvider === 'google' && (
+              <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          {/* Google Cloud */}
+          <TouchableOpacity
+            style={[
+              styles.providerItem,
+              !googleCloudAvailable && styles.providerDisabled,
+              ttsProvider === 'google-cloud' && { backgroundColor: theme.surfaceHover }
+            ]}
+            onPress={() => handleProviderChange('google-cloud')}
+          >
+            <Text style={styles.providerIcon}>☁️</Text>
+            <View style={styles.providerInfo}>
+              <Text style={[styles.providerName, { color: googleCloudAvailable ? theme.text : theme.textSecondary }]}>
+                Google Cloud
+              </Text>
+              <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
+                Premium • Chất lượng cao
+              </Text>
+            </View>
+            {!googleCloudAvailable ? (
+              <Text style={[styles.providerBadge, { backgroundColor: theme.surfaceHover, color: theme.textSecondary }]}>
+                API Key
+              </Text>
+            ) : ttsProvider === 'google-cloud' ? (
+              <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
+            ) : null}
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          {/* OpenAI */}
+          <TouchableOpacity
+            style={[
+              styles.providerItem,
+              !openaiAvailable && styles.providerDisabled,
+              ttsProvider === 'openai' && { backgroundColor: theme.surfaceHover }
+            ]}
+            onPress={() => handleProviderChange('openai')}
+          >
+            <Text style={styles.providerIcon}>✨</Text>
+            <View style={styles.providerInfo}>
+              <Text style={[styles.providerName, { color: openaiAvailable ? theme.text : theme.textSecondary }]}>
+                OpenAI
+              </Text>
+              <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
+                Đa ngôn ngữ • Tự nhiên
+              </Text>
+            </View>
+            {!openaiAvailable ? (
+              <Text style={[styles.providerBadge, { backgroundColor: theme.surfaceHover, color: theme.textSecondary }]}>
+                API Key
+              </Text>
+            ) : ttsProvider === 'openai' ? (
+              <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
+            ) : null}
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
     </ScrollView>
   );
 }
@@ -672,5 +689,24 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
     overflow: 'hidden',
+  },
+  // Bottom Sheet styles
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+  },
+  sheetTitle: {
+    ...typography.h3,
+    fontWeight: '600',
+  },
+  sheetContent: {
+    paddingBottom: spacing['4xl'],
+  },
+  sheetListContent: {
+    paddingBottom: spacing['4xl'],
   },
 });

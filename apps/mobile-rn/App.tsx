@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TrackPlayer from 'react-native-track-player';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -93,12 +94,14 @@ function App(): React.JSX.Element {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
-          <AppInitializer>
-            <AppNavigator />
-          </AppInitializer>
-        </QueryClientProvider>
+        <BottomSheetModalProvider>
+          <QueryClientProvider client={queryClient}>
+            <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+            <AppInitializer>
+              <AppNavigator />
+            </AppInitializer>
+          </QueryClientProvider>
+        </BottomSheetModalProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
