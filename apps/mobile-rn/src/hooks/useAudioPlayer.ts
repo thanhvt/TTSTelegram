@@ -5,12 +5,14 @@
  * @uses react-native-track-player
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import TrackPlayer, {
   usePlaybackState,
   useProgress,
+  useTrackPlayerEvents,
   State,
   Track,
+  Event,
 } from 'react-native-track-player';
 import { useAppStore, QueueItem } from '../stores/appStore';
 import { ttsApi, messagesApi } from '../services/api';
@@ -73,6 +75,20 @@ export function useAudioPlayer() {
       TrackPlayer.setRate(playbackRate);
     }
   }, [playbackRate, isReady]);
+
+  // Ref để tránh closure stale trong event listener
+  const skipNextRef = useRef<() => Promise<void>>();
+
+  // Auto-next: Lắng nghe khi track kết thúc
+  useTrackPlayerEvents([Event.PlaybackQueueEnded], async (event) => {
+    if (event.type === Event.PlaybackQueueEnded) {
+      console.log('Track kết thúc, tự động chuyển bài tiếp theo...');
+      // Gọi skipNext thông qua ref để tránh stale closure
+      if (skipNextRef.current) {
+        await skipNextRef.current();
+      }
+    }
+  });
 
   /**
    * Generate TTS và thêm vào player
@@ -228,6 +244,11 @@ export function useAudioPlayer() {
   const seekTo = useCallback(async (position: number) => {
     await TrackPlayer.seekTo(position);
   }, []);
+
+  // Cập nhật ref để auto-next có thể gọi skipNext mới nhất
+  useEffect(() => {
+    skipNextRef.current = skipNext;
+  }, [skipNext]);
 
   return {
     // State

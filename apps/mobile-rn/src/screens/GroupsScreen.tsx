@@ -2,10 +2,11 @@
  * Groups Screen - Màn hình danh sách groups/channels
  *
  * @description Hiển thị và chọn groups để đọc tin nhắn
- * @flow Load dialogs → User chọn groups → Bấm "Bắt đầu đọc" → Load messages → Navigate to Player
+ * @features Tìm kiếm, lọc theo Groups/Channels, hiển thị logo group
+ * @flow Load dialogs → User lọc/tìm → Chọn groups → Bấm "Bắt đầu đọc" → Load messages → Navigate to Player
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +16,8 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  TextInput,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,8 +30,15 @@ import { spacing, borderRadius, touchTarget, typography } from '../theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+// Loại filter: tất cả, chỉ groups, chỉ channels
+type FilterType = 'all' | 'group' | 'channel';
+
 /**
  * Dialog Item Component - Memoized để tối ưu FlatList
+ * @param dialog - Dialog data bao gồm photoUrl
+ * @param isSelected - Có đang được chọn hay không
+ * @param onToggle - Callback khi toggle selection
+ * @description Card có avatar/logo thực từ Telegram API
  */
 const DialogItem = React.memo(
   ({
@@ -42,7 +52,9 @@ const DialogItem = React.memo(
     onToggle: () => void;
     theme: ReturnType<typeof useTheme>;
   }) => {
+    // Icon type emoji làm fallback khi không có logo
     const typeEmoji = dialog.type === 'channel' ? '📢' : '👥';
+    const typeLabel = dialog.type === 'channel' ? 'Channel' : dialog.type === 'megagroup' ? 'Supergroup' : 'Group';
 
     return (
       <TouchableOpacity
@@ -66,26 +78,53 @@ const DialogItem = React.memo(
           {isSelected && <Text style={styles.checkmark}>✓</Text>}
         </View>
 
+        {/* Avatar/Logo của group */}
+        <View
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: dialog.type === 'channel' ? '#9C27B0' + '30' : theme.primary + '30',
+            },
+          ]}
+        >
+          {dialog.photoUrl ? (
+            <Image
+              source={{ uri: dialog.photoUrl }}
+              style={styles.avatarImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={styles.avatarEmoji}>{typeEmoji}</Text>
+          )}
+        </View>
+
         {/* Content */}
         <View style={styles.dialogContent}>
           <View style={styles.dialogHeader}>
-            <Text style={[styles.dialogTitle, { color: theme.text }]}>
-              {typeEmoji} {dialog.title}
+            <Text style={[styles.dialogTitle, { color: theme.text }]} numberOfLines={1}>
+              {dialog.title}
             </Text>
             {dialog.unreadCount > 0 && (
               <View style={[styles.badge, { backgroundColor: theme.primary }]}>
-                <Text style={styles.badgeText}>{dialog.unreadCount}</Text>
+                <Text style={styles.badgeText}>
+                  {dialog.unreadCount > 999 ? '999+' : dialog.unreadCount}
+                </Text>
               </View>
             )}
           </View>
-          {dialog.lastMessage && (
-            <Text
-              style={[styles.lastMessage, { color: theme.textSecondary }]}
-              numberOfLines={1}
-            >
-              {dialog.lastMessage}
+          <View style={styles.dialogSubtitle}>
+            <Text style={[styles.typeLabel, { color: theme.textSecondary }]}>
+              {typeLabel}
             </Text>
-          )}
+            {dialog.lastMessage && (
+              <Text
+                style={[styles.lastMessage, { color: theme.textSecondary }]}
+                numberOfLines={1}
+              >
+                • {dialog.lastMessage}
+              </Text>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -111,6 +150,9 @@ export default function GroupsScreen() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // State cho tìm kiếm và lọc
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<FilterType>('all');
 
   /**
    * Load dialogs từ API
@@ -176,6 +218,42 @@ export default function GroupsScreen() {
   // Lấy danh sách đã sắp xếp
   const sortedDialogs = getSortedDialogs();
 
+  /**
+   * Lọc danh sách theo search query và filter type
+   * @description Bước 1: Filter user type, Bước 2: Filter theo type, Bước 3: Filter theo search
+   */
+  const filteredDialogs = useMemo(() => {
+    // Bước 1: Loại bỏ Chat cá nhân (user type)
+    let filtered = sortedDialogs.filter((d) => d.type !== 'user');
+
+    // Bước 2: Filter theo type được chọn
+    if (filterType === 'group') {
+      filtered = filtered.filter((d) => d.type === 'group' || d.type === 'megagroup');
+    } else if (filterType === 'channel') {
+      filtered = filtered.filter((d) => d.type === 'channel');
+    }
+
+    // Bước 3: Filter theo search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((d) => d.title.toLowerCase().includes(query));
+    }
+
+    return filtered;
+  }, [sortedDialogs, filterType, searchQuery]);
+
+  /**
+   * Đếm số lượng theo type để hiển thị trên filter tabs
+   */
+  const typeCounts = useMemo(() => {
+    const groupsAndChannels = dialogs.filter((d) => d.type !== 'user');
+    return {
+      all: groupsAndChannels.length,
+      group: groupsAndChannels.filter((d) => d.type === 'group' || d.type === 'megagroup').length,
+      channel: groupsAndChannels.filter((d) => d.type === 'channel').length,
+    };
+  }, [dialogs]);
+
   // Tính tổng unread của selected groups
   const totalUnread = dialogs
     .filter((d) => selectedDialogIds.includes(d.id))
@@ -196,18 +274,66 @@ export default function GroupsScreen() {
         <Text style={[styles.headerTitle, { color: theme.text }]}>TTS Reader</Text>
       </View>
 
+      {/* Search Bar - Tìm kiếm group */}
+      <View style={[styles.searchContainer, { backgroundColor: theme.surface }]}>
+        <View style={[styles.searchInputWrapper, { backgroundColor: theme.background, borderColor: theme.border }]}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder="Tìm kiếm group..."
+            placeholderTextColor={theme.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Text style={[styles.clearButton, { color: theme.textSecondary }]}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Filter Tabs - Lọc theo Groups/Channels */}
+      <View style={[styles.filterRow, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+        {[
+          { key: 'all' as FilterType, label: 'Tất cả', count: typeCounts.all },
+          { key: 'group' as FilterType, label: 'Groups', count: typeCounts.group },
+          { key: 'channel' as FilterType, label: 'Channels', count: typeCounts.channel },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[
+              styles.filterOption,
+              filterType === tab.key && { backgroundColor: theme.primary },
+            ]}
+            onPress={() => setFilterType(tab.key)}
+          >
+            <Text
+              style={[
+                styles.filterOptionText,
+                { color: filterType === tab.key ? '#fff' : theme.text },
+              ]}
+            >
+              {tab.label} ({tab.count})
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {/* Select All Control */}
       <View style={[styles.selectAllRow, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <TouchableOpacity
           style={styles.selectAllButton}
-          onPress={selectedDialogIds.length === dialogs.length ? deselectAllDialogs : selectAllDialogs}
+          onPress={selectedDialogIds.length === filteredDialogs.length ? deselectAllDialogs : selectAllDialogs}
         >
           <Text style={[styles.selectAllText, { color: theme.primary }]}>
-            {selectedDialogIds.length === dialogs.length ? '☐ Bỏ chọn tất cả' : '☑ Chọn tất cả'}
+            {selectedDialogIds.length === filteredDialogs.length ? '☐ Bỏ chọn tất cả' : '☑ Chọn tất cả'}
           </Text>
         </TouchableOpacity>
         <Text style={[styles.selectedCount, { color: theme.textSecondary }]}>
-          {selectedDialogIds.length}/{dialogs.length}
+          {selectedDialogIds.length}/{filteredDialogs.length}
         </Text>
       </View>
 
@@ -246,7 +372,7 @@ export default function GroupsScreen() {
 
       {/* Dialog List */}
       <FlatList
-        data={sortedDialogs}
+        data={filteredDialogs}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
@@ -258,13 +384,20 @@ export default function GroupsScreen() {
           />
         }
         getItemLayout={(_, index) => ({
-          length: 72,
-          offset: 72 * index,
+          length: 80,
+          offset: 80 * index,
           index,
         })}
         removeClippedSubviews
         maxToRenderPerBatch={10}
         windowSize={5}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              {searchQuery ? 'Không tìm thấy kết quả' : 'Không có groups nào'}
+            </Text>
+          </View>
+        }
       />
 
       {/* Start Reading Button */}
@@ -311,6 +444,50 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...typography.h2,
   },
+  // Search Bar Styles
+  searchContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    height: 44,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    ...typography.body,
+    paddingVertical: spacing.sm,
+  },
+  clearButton: {
+    fontSize: 16,
+    padding: spacing.sm,
+  },
+  // Filter Tabs Styles
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    gap: spacing.sm,
+  },
+  filterOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  filterOptionText: {
+    ...typography.bodySmall,
+    fontWeight: '500',
+  },
+  // Select All Styles
   selectAllRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -328,6 +505,7 @@ const styles = StyleSheet.create({
   selectedCount: {
     ...typography.body,
   },
+  // Sort Row Styles
   sortRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -349,15 +527,24 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     fontWeight: '500',
   },
+  // List Styles
   listContent: {
     paddingBottom: 100,
   },
+  emptyContainer: {
+    paddingVertical: spacing.xl * 2,
+    alignItems: 'center',
+  },
+  emptyText: {
+    ...typography.body,
+  },
+  // Dialog Item Styles
   dialogItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    minHeight: 72,
+    minHeight: 80,
   },
   checkbox: {
     width: 24,
@@ -373,6 +560,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  // Avatar/Logo Styles
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarEmoji: {
+    fontSize: 20,
+  },
+  // Dialog Content Styles
   dialogContent: {
     flex: 1,
   },
@@ -385,6 +590,14 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '600',
     flex: 1,
+  },
+  dialogSubtitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  typeLabel: {
+    ...typography.caption,
   },
   badge: {
     paddingHorizontal: 8,
@@ -399,7 +612,9 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     ...typography.bodySmall,
+    flex: 1,
   },
+  // Floating Button Styles
   floatingButton: {
     position: 'absolute',
     bottom: 0,

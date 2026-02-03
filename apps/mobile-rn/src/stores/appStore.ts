@@ -44,6 +44,7 @@ export interface QueueItem {
   id: string;
   message: TelegramMessage;
   dialogTitle: string;
+  dialogPhotoUrl?: string; // URL avatar/logo của group
   audioUrl?: string;
   status: 'pending' | 'generating' | 'ready' | 'playing' | 'completed' | 'error';
   error?: string;

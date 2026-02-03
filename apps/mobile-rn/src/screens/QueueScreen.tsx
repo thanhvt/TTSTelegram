@@ -21,6 +21,41 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { RootStackParamList } from '../navigation/types';
 import { spacing, borderRadius, touchTarget, typography } from '../theme';
 
+/**
+ * Format thời gian tin nhắn - Hiển thị theo định dạng dễ đọc
+ *
+ * @param date - Thời gian cần format
+ * @returns Chuỗi thời gian đã format (VD: "14:30" hoặc "Hôm qua 14:30")
+ */
+const formatMessageTime = (date: Date | string): string => {
+  const msgDate = new Date(date);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  const msgDay = new Date(msgDate.getFullYear(), msgDate.getMonth(), msgDate.getDate());
+
+  const timeStr = msgDate.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  if (msgDay.getTime() === today.getTime()) {
+    // Hôm nay - chỉ hiển thị giờ
+    return timeStr;
+  } else if (msgDay.getTime() === yesterday.getTime()) {
+    // Hôm qua
+    return `Hôm qua ${timeStr}`;
+  } else {
+    // Các ngày khác - hiển thị ngày/tháng
+    const dateStr = msgDate.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+    return `${dateStr} ${timeStr}`;
+  }
+};
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 /**
@@ -66,6 +101,9 @@ const QueueItemRow = React.memo(
               numberOfLines={1}
             >
               {item.dialogTitle}
+            </Text>
+            <Text style={[styles.queueItemTime, { color: theme.textSecondary }]}>
+              🕐 {formatMessageTime(item.message.date)}
             </Text>
           </View>
           <Text
@@ -301,6 +339,10 @@ const styles = StyleSheet.create({
   },
   queueItemSender: {
     ...typography.caption,
+  },
+  queueItemTime: {
+    ...typography.caption,
+    marginLeft: spacing.sm,
   },
   allDone: {
     alignItems: 'center',

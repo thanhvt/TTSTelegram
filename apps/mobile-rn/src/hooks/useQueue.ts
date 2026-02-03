@@ -64,11 +64,15 @@ export function useQueue() {
             continue;
           }
 
+          // Đảo ngược thứ tự: API trả về mới→cũ, ta cần cũ→mới (xa→gần)
+          const sortedMessages = [...messages].reverse();
+
           // Chuyển đổi thành QueueItems
-          const queueItems: QueueItem[] = messages.map((msg: TelegramMessage) => ({
+          const queueItems: QueueItem[] = sortedMessages.map((msg: TelegramMessage) => ({
             id: `${dialogId}-${msg.id}`,
             message: msg,
             dialogTitle: dialog.title,
+            dialogPhotoUrl: dialog.photoUrl, // Truyền photo URL để hiển thị logo group
             status: 'pending' as const,
           }));
 

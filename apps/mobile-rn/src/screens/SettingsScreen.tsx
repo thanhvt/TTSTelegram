@@ -28,18 +28,29 @@ export default function SettingsScreen() {
   const {
     ttsProvider,
     selectedVoice,
+    randomVoice,
     playbackRate,
     theme: currentTheme,
     setTtsProvider,
     setSelectedVoice,
+    setRandomVoice,
     setPlaybackRate,
     setTheme,
     setAuthStatus,
   } = useAppStore();
 
-  // Voice picker state
+  // Modal states
   const [voiceModalVisible, setVoiceModalVisible] = useState(false);
-  const { voices, isLoading: voicesLoading, getVoicesByProvider } = useVoices();
+  const [providerModalVisible, setProviderModalVisible] = useState(false);
+  
+  // Voices data
+  const { 
+    voices, 
+    isLoading: voicesLoading, 
+    getVoicesByProvider,
+    openaiAvailable,
+    googleCloudAvailable,
+  } = useVoices();
 
   // Lấy danh sách voices theo provider hiện tại
   const availableVoices = getVoicesByProvider(ttsProvider);
@@ -54,9 +65,45 @@ export default function SettingsScreen() {
   };
 
   /**
+   * Xử lý chọn provider
+   * @param provider - Provider được chọn
+   */
+  const handleProviderChange = (provider: TTSProvider) => {
+    if (provider === 'openai' && !openaiAvailable) {
+      Alert.alert('Không khả dụng', 'OpenAI TTS chưa được cấu hình. Vui lòng thêm OPENAI_API_KEY vào backend.');
+      return;
+    }
+    if (provider === 'google-cloud' && !googleCloudAvailable) {
+      Alert.alert('Không khả dụng', 'Google Cloud TTS chưa được cấu hình. Vui lòng thêm GOOGLE_CLOUD_API_KEY vào backend.');
+      return;
+    }
+    setTtsProvider(provider);
+    setProviderModalVisible(false);
+  };
+
+  /**
+   * Lấy tên hiển thị của provider
+   */
+  const getProviderDisplayName = (): string => {
+    switch (ttsProvider) {
+      case 'google':
+        return 'Google (Miễn phí)';
+      case 'google-cloud':
+        return 'Google Cloud';
+      case 'openai':
+        return 'OpenAI';
+      default:
+        return ttsProvider;
+    }
+  };
+
+  /**
    * Lấy tên hiển thị của voice đang chọn
    */
   const getVoiceDisplayName = (): string => {
+    if (randomVoice) {
+      return '🎲 Ngẫu nhiên';
+    }
     const voice = voices.find((v) => v.id === selectedVoice);
     return voice ? `${voice.name} (${voice.gender === 'Male' ? '♂' : '♀'})` : selectedVoice;
   };
@@ -88,6 +135,9 @@ export default function SettingsScreen() {
     { key: 'midnight-audio', label: '🌙 Midnight Audio' },
     { key: 'fintech-trust', label: '💎 Fintech Trust' },
     { key: 'terminal-green', label: '💚 Terminal Green' },
+    { key: 'candy-pop', label: '🍬 Candy Pop' },
+    { key: 'sunset-vibes', label: '🌅 Sunset Vibes' },
+    { key: 'neon-cyberpunk', label: '🎮 Neon Cyberpunk' },
   ];
 
   // Speed options
@@ -109,26 +159,67 @@ export default function SettingsScreen() {
           🔊 GIỌNG ĐỌC
         </Text>
         <View style={[styles.card, { backgroundColor: theme.surface }]}>
-          <View style={styles.row}>
-            <Text style={[styles.label, { color: theme.text }]}>Provider</Text>
-            <Text style={[styles.value, { color: theme.textSecondary }]}>
-              {ttsProvider === 'google' ? 'Google (Miễn phí)' : ttsProvider}
-            </Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          {/* Provider Selection */}
           <TouchableOpacity
             style={styles.row}
-            onPress={() => setVoiceModalVisible(true)}
+            onPress={() => setProviderModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.label, { color: theme.text }]}>Voice</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Provider</Text>
             <View style={styles.valueRow}>
               <Text style={[styles.value, { color: theme.textSecondary }]}>
-                {getVoiceDisplayName()}
+                {getProviderDisplayName()}
               </Text>
               <Text style={[styles.chevron, { color: theme.textSecondary }]}>›</Text>
             </View>
           </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          {/* Voice Selection */}
+          <TouchableOpacity
+            style={[styles.row, randomVoice && styles.disabledRow]}
+            onPress={() => !randomVoice && setVoiceModalVisible(true)}
+            activeOpacity={randomVoice ? 1 : 0.7}
+            disabled={randomVoice}
+          >
+            <Text style={[styles.label, { color: randomVoice ? theme.textSecondary : theme.text }]}>Voice</Text>
+            <View style={styles.valueRow}>
+              <Text style={[styles.value, { color: theme.textSecondary }]}>
+                {getVoiceDisplayName()}
+              </Text>
+              {!randomVoice && (
+                <Text style={[styles.chevron, { color: theme.textSecondary }]}>›</Text>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          {/* Random Voice Toggle */}
+          <View style={styles.row}>
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.label, { color: theme.text }]}>Giọng ngẫu nhiên</Text>
+              <Text style={[styles.hint, { color: theme.textSecondary }]}>
+                Mỗi tin nhắn một giọng khác
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.toggle,
+                { backgroundColor: randomVoice ? theme.primary : theme.surfaceHover }
+              ]}
+              onPress={() => setRandomVoice(!randomVoice)}
+              activeOpacity={0.8}
+            >
+              <View
+                style={[
+                  styles.toggleThumb,
+                  randomVoice && styles.toggleThumbActive
+                ]}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -269,6 +360,106 @@ export default function SettingsScreen() {
                 )}
               />
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Provider Picker Modal */}
+      <Modal
+        visible={providerModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setProviderModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Chọn Provider</Text>
+              <TouchableOpacity
+                onPress={() => setProviderModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Google Free */}
+            <TouchableOpacity
+              style={[
+                styles.providerItem,
+                ttsProvider === 'google' && { backgroundColor: theme.surfaceHover }
+              ]}
+              onPress={() => handleProviderChange('google')}
+            >
+              <Text style={styles.providerIcon}>🔊</Text>
+              <View style={styles.providerInfo}>
+                <Text style={[styles.providerName, { color: theme.text }]}>Google</Text>
+                <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
+                  Miễn phí • Ổn định
+                </Text>
+              </View>
+              {ttsProvider === 'google' && (
+                <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+            {/* Google Cloud */}
+            <TouchableOpacity
+              style={[
+                styles.providerItem,
+                !googleCloudAvailable && styles.providerDisabled,
+                ttsProvider === 'google-cloud' && { backgroundColor: theme.surfaceHover }
+              ]}
+              onPress={() => handleProviderChange('google-cloud')}
+            >
+              <Text style={styles.providerIcon}>☁️</Text>
+              <View style={styles.providerInfo}>
+                <Text style={[styles.providerName, { color: googleCloudAvailable ? theme.text : theme.textSecondary }]}>
+                  Google Cloud
+                </Text>
+                <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
+                  Premium • Chất lượng cao
+                </Text>
+              </View>
+              {!googleCloudAvailable ? (
+                <Text style={[styles.providerBadge, { backgroundColor: theme.surfaceHover, color: theme.textSecondary }]}>
+                  API Key
+                </Text>
+              ) : ttsProvider === 'google-cloud' ? (
+                <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
+              ) : null}
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+            {/* OpenAI */}
+            <TouchableOpacity
+              style={[
+                styles.providerItem,
+                !openaiAvailable && styles.providerDisabled,
+                ttsProvider === 'openai' && { backgroundColor: theme.surfaceHover }
+              ]}
+              onPress={() => handleProviderChange('openai')}
+            >
+              <Text style={styles.providerIcon}>✨</Text>
+              <View style={styles.providerInfo}>
+                <Text style={[styles.providerName, { color: openaiAvailable ? theme.text : theme.textSecondary }]}>
+                  OpenAI
+                </Text>
+                <Text style={[styles.providerDesc, { color: theme.textSecondary }]}>
+                  Đa ngôn ngữ • Tự nhiên
+                </Text>
+              </View>
+              {!openaiAvailable ? (
+                <Text style={[styles.providerBadge, { backgroundColor: theme.surfaceHover, color: theme.textSecondary }]}>
+                  API Key
+                </Text>
+              ) : ttsProvider === 'openai' ? (
+                <Text style={{ color: theme.primary, fontSize: 20 }}>✓</Text>
+              ) : null}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -421,5 +612,65 @@ const styles = StyleSheet.create({
   voiceMeta: {
     ...typography.caption,
     marginTop: spacing.xs,
+  },
+  // Toggle styles
+  disabledRow: {
+    opacity: 0.5,
+  },
+  toggleInfo: {
+    flex: 1,
+  },
+  hint: {
+    ...typography.caption,
+    marginTop: spacing.xs,
+  },
+  toggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  // Provider picker styles
+  providerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minHeight: touchTarget.comfortable,
+  },
+  providerIcon: {
+    fontSize: 28,
+    marginRight: spacing.md,
+  },
+  providerInfo: {
+    flex: 1,
+  },
+  providerName: {
+    ...typography.body,
+    fontWeight: '600',
+  },
+  providerDesc: {
+    ...typography.caption,
+    marginTop: spacing.xs,
+  },
+  providerDisabled: {
+    opacity: 0.4,
+  },
+  providerBadge: {
+    ...typography.caption,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    overflow: 'hidden',
   },
 });

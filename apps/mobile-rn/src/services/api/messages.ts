@@ -49,8 +49,9 @@ export async function markAsRead(
   dialogId: string,
   messageIds: number[]
 ): Promise<void> {
-  await apiClient(`/messages/${dialogId}/read`, {
+  // Gọi endpoint /messages/mark-read với dialogId trong body
+  await apiClient(`/messages/mark-read`, {
     method: 'POST',
-    body: JSON.stringify({ messageIds } as MarkAsReadRequest),
+    body: JSON.stringify({ dialogId, messageIds }),
   });
 }

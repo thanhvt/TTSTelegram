@@ -5,7 +5,7 @@
  * @navigation Mở như modal từ Groups screen
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   StyleSheet,
   SafeAreaView,
   Dimensions,
+  Image,
+  ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -40,6 +42,13 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Lấy chữ cái đầu tiên của tên group cho fallback avatar
+ */
+function getInitials(name: string): string {
+  return name.charAt(0).toUpperCase();
+}
+
 export default function PlayerScreen({ navigation }: Props) {
   const theme = useTheme();
   const {
@@ -54,8 +63,21 @@ export default function PlayerScreen({ navigation }: Props) {
     togglePlayPause,
     skipNext,
     skipPrevious,
-    seekTo,
+    play,
+    isReady,
   } = useAudioPlayer();
+
+  // Ref để track đã auto-start chưa (tránh gọi nhiều lần)
+  const hasAutoStarted = useRef(false);
+
+  // Auto-start: Tự động phát khi mở màn hình
+  useEffect(() => {
+    if (isReady && currentItem && !hasAutoStarted.current) {
+      hasAutoStarted.current = true;
+      console.log('Auto-start: Bắt đầu phát tự động...');
+      play();
+    }
+  }, [isReady, currentItem, play]);
 
   // Progress percentage
   const progressPercent = duration > 0 ? (position / duration) * 100 : 0;
@@ -109,6 +131,7 @@ export default function PlayerScreen({ navigation }: Props) {
         <TouchableOpacity
           style={styles.closeButton}
           onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={[styles.closeText, { color: theme.textSecondary }]}>✕</Text>
         </TouchableOpacity>
@@ -120,9 +143,19 @@ export default function PlayerScreen({ navigation }: Props) {
       {/* Now Playing Info - Swipeable */}
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.nowPlaying, animatedStyle]}>
-          {/* Avatar placeholder */}
-          <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
-            <Text style={styles.avatarEmoji}>🎧</Text>
+          {/* Avatar: Logo group hoặc fallback initials */}
+          <View style={[styles.avatarContainer, { backgroundColor: theme.surface }]}>
+            {currentItem?.dialogPhotoUrl ? (
+              <Image
+                source={{ uri: currentItem.dialogPhotoUrl }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={[styles.avatarInitials, { color: theme.primary }]}>
+                {currentItem?.dialogTitle ? getInitials(currentItem.dialogTitle) : '🎧'}
+              </Text>
+            )}
           </View>
 
           {/* Group name */}
@@ -130,13 +163,16 @@ export default function PlayerScreen({ navigation }: Props) {
             {currentItem?.dialogTitle || 'Đang chờ...'}
           </Text>
 
-          {/* Message text */}
-          <Text
-            style={[styles.messageText, { color: theme.textSecondary }]}
-            numberOfLines={4}
+          {/* Message text - Full content với ScrollView */}
+          <ScrollView 
+            style={styles.messageScrollView}
+            contentContainerStyle={styles.messageScrollContent}
+            showsVerticalScrollIndicator={true}
           >
-            {currentItem?.message.text || 'Chọn group và bấm "Bắt đầu đọc"'}
-          </Text>
+            <Text style={[styles.messageText, { color: theme.textSecondary }]}>
+              {currentItem?.message.text || 'Chọn group và bấm "Bắt đầu đọc"'}
+            </Text>
+          </ScrollView>
 
           {/* Sender info */}
           {currentItem?.message.senderName && (
@@ -172,44 +208,67 @@ export default function PlayerScreen({ navigation }: Props) {
         </View>
       </View>
 
-      {/* Controls */}
+      {/* Controls - Redesigned với UI/UX Pro Max */}
       <View style={styles.controls}>
-        {/* Previous */}
+        {/* Previous Button */}
         <TouchableOpacity
-          style={[styles.controlButton, { backgroundColor: theme.surface }]}
+          style={[
+            styles.controlButton,
+            { 
+              backgroundColor: theme.surface,
+              borderColor: currentIndex === 0 ? 'transparent' : 'rgba(255,255,255,0.15)',
+            },
+          ]}
           onPress={skipPrevious}
           disabled={currentIndex === 0}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.controlIcon, { opacity: currentIndex === 0 ? 0.5 : 1 }]}>
-            ⏮️
+          <Text style={[styles.controlIcon, { opacity: currentIndex === 0 ? 0.3 : 1 }]}>
+            ⏮
           </Text>
         </TouchableOpacity>
 
-        {/* Play/Pause */}
+        {/* Play/Pause Button - Chính với glow effect */}
         <TouchableOpacity
-          style={[styles.playButton, { backgroundColor: theme.primary }]}
+          style={[
+            styles.playButton,
+            { 
+              backgroundColor: theme.primary,
+              shadowColor: theme.primary,
+            },
+          ]}
           onPress={togglePlayPause}
+          activeOpacity={0.8}
         >
           {isGenerating || isBuffering ? (
             <Text style={styles.playIcon}>⏳</Text>
           ) : (
-            <Text style={styles.playIcon}>{isPlaying ? '⏸️' : '▶️'}</Text>
+            <Text style={styles.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>
           )}
         </TouchableOpacity>
 
-        {/* Next */}
+        {/* Next Button */}
         <TouchableOpacity
-          style={[styles.controlButton, { backgroundColor: theme.surface }]}
+          style={[
+            styles.controlButton,
+            { 
+              backgroundColor: theme.surface,
+              borderColor: currentIndex >= queueLength - 1 ? 'transparent' : 'rgba(255,255,255,0.15)',
+            },
+          ]}
           onPress={skipNext}
           disabled={currentIndex >= queueLength - 1}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
         >
           <Text
             style={[
               styles.controlIcon,
-              { opacity: currentIndex >= queueLength - 1 ? 0.5 : 1 },
+              { opacity: currentIndex >= queueLength - 1 ? 0.3 : 1 },
             ]}
           >
-            ⏭️
+            ⏭
           </Text>
         </TouchableOpacity>
       </View>
@@ -236,13 +295,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   closeButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeText: {
     fontSize: 24,
+    fontWeight: '300',
   },
   queueInfo: {
     ...typography.body,
@@ -253,30 +313,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing['2xl'],
   },
-  avatar: {
+  // Avatar styles - cải thiện với border và shadow
+  avatarContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xl,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  avatarEmoji: {
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarInitials: {
     fontSize: 48,
+    fontWeight: '700',
   },
   groupName: {
     ...typography.h3,
     marginBottom: spacing.md,
     textAlign: 'center',
   },
+  // Message styles - Full content với ScrollView
+  messageScrollView: {
+    maxHeight: 150,
+    width: '100%',
+    marginBottom: spacing.md,
+  },
+  messageScrollContent: {
+    paddingHorizontal: spacing.sm,
+  },
   messageText: {
     ...typography.body,
     textAlign: 'center',
-    marginBottom: spacing.md,
     lineHeight: 24,
   },
   senderInfo: {
     ...typography.caption,
+    marginTop: spacing.sm,
   },
   swipeHint: {
     ...typography.caption,
@@ -304,6 +387,7 @@ const styles = StyleSheet.create({
   timeText: {
     ...typography.caption,
   },
+  // Controls - Redesigned theo UI/UX Pro Max
   controls: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -312,24 +396,30 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   controlButton: {
-    width: touchTarget.comfortable,
-    height: touchTarget.comfortable,
-    borderRadius: touchTarget.comfortable / 2,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   controlIcon: {
-    fontSize: 24,
+    fontSize: 22,
   },
   playButton: {
-    width: touchTarget.large + 8,
-    height: touchTarget.large + 8,
-    borderRadius: (touchTarget.large + 8) / 2,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    // Glow effect
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   playIcon: {
-    fontSize: 32,
+    fontSize: 28,
   },
   statusText: {
     ...typography.bodySmall,

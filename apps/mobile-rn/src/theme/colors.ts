@@ -5,7 +5,7 @@
  * @returns Object chứa các theme với primary, background, surface, text colors
  */
 
-export type ThemeType = 'ocean-calm' | 'midnight-audio' | 'fintech-trust' | 'terminal-green';
+export type ThemeType = 'ocean-calm' | 'midnight-audio' | 'fintech-trust' | 'terminal-green' | 'candy-pop' | 'sunset-vibes' | 'neon-cyberpunk';
 
 export interface ThemeColors {
   primary: string;
@@ -75,6 +75,45 @@ export const themes: Record<ThemeType, ThemeColors> = {
     error: '#EF4444',
     success: '#22C55E',
     border: '#27272A',
+  },
+  // 🍬 Candy Pop - Theme kẹo ngọt hồng pastel
+  'candy-pop': {
+    primary: '#EC4899',
+    background: '#FDF2F8',
+    surface: '#FFFFFF',
+    surfaceHover: '#FCE7F3',
+    text: '#831843',
+    textSecondary: '#BE185D',
+    accent: '#F472B6',
+    error: '#E11D48',
+    success: '#10B981',
+    border: '#FBCFE8',
+  },
+  // 🌅 Sunset Vibes - Theme hoàng hôn ấm áp
+  'sunset-vibes': {
+    primary: '#F97316',
+    background: '#1C1917',
+    surface: '#292524',
+    surfaceHover: '#3D3836',
+    text: '#FEF3C7',
+    textSecondary: '#FDBA74',
+    accent: '#FB923C',
+    error: '#EF4444',
+    success: '#84CC16',
+    border: '#44403C',
+  },
+  // 🎮 Neon Cyberpunk - Theme retro neon
+  'neon-cyberpunk': {
+    primary: '#06B6D4',
+    background: '#0C0A1D',
+    surface: '#1A1830',
+    surfaceHover: '#2A2850',
+    text: '#E0F2FE',
+    textSecondary: '#67E8F9',
+    accent: '#22D3EE',
+    error: '#FF3B6F',
+    success: '#00FF9F',
+    border: '#3B2F80',
   },
 };
 
