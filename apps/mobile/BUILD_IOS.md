@@ -1,162 +1,89 @@
 # 📱 TTS Telegram Reader - Hướng Dẫn Build iOS
 
-## 📋 Yêu Cầu
+## ⚠️ LƯU Ý QUAN TRỌNG
 
-- **macOS** với Xcode đã cài đặt
-- **Node.js** >= 18
-- **Tài khoản Expo** (miễn phí): https://expo.dev/signup
-- **Apple Developer Account** (cho production, $99/năm)
+**Xcode 26.2 (macOS mới nhất) KHÔNG tương thích** với nhiều thư viện React Native:
+- `react-native-gesture-handler`
+- `react-native-reanimated`
+- `react-native-screens`
+
+**Giải pháp:** Sử dụng **EAS Cloud Build** (Expo Application Services)
 
 ---
 
-## 🚀 Các Bước Build
+## 🚀 Build với EAS Cloud (Khuyến nghị)
 
-### 1. Cài đặt EAS CLI
-```bash
-npm install -g eas-cli
-```
-
-### 2. Đăng nhập Expo
+### Bước 1: Đăng nhập EAS
 ```bash
 eas login
 # Nhập email và password Expo
 ```
 
-### 3. Cấu hình EAS Project
+### Bước 2: Build Development Client
 ```bash
 cd apps/mobile
-eas build:configure
-```
-> Lệnh này tạo file `eas.json` với các build profiles
 
-### 4. Build Development Client
-
-#### Option A: Cloud Build (recomm, không cần Mac)
-```bash
 # iOS Simulator
 eas build --profile development --platform ios
 
-# Android
-eas build --profile development --platform android
+# iOS Device (cần Apple Developer Account)
+eas build --profile development --platform ios --non-interactive
 ```
 
-#### Option B: Local Build (cần Xcode)
-```bash
-# Prebuild native folders
-npx expo prebuild
+### Bước 3: Tải và cài đặt
+1. Sau khi build xong (~15-20 phút), link download sẽ hiện
+2. Tải file `.tar.gz` (cho Simulator) hoặc `.ipa` (cho device)
+3. Cài lên Simulator: `tar -xzf file.tar.gz && open TTSTelegramReader.app`
 
-# Build iOS locally
-npx expo run:ios
-```
-
-### 5. Cài App lên Device
-
-Sau khi build xong:
-1. Tải file `.ipa` từ Expo Dashboard
-2. Dùng **Apple Configurator 2** hoặc **Xcode** để install
-3. Hoặc: Dùng QR code từ Expo Dashboard
-
-### 6. Chạy Development Server
+### Bước 4: Chạy dev server
 ```bash
 npx expo start --dev-client
 ```
-> Scan QR code bằng app đã cài
 
 ---
 
-## ⚡ Quick Start (Local iOS Simulator)
+## 📱 Build Local (Cần Xcode 15 hoặc 16)
 
-Nếu anh zai có Xcode và muốn test nhanh trên Simulator:
+Nếu bạn có Xcode 15.x hoặc 16.x:
 
 ```bash
 cd apps/mobile
 
-# Tạo native iOS folder
-npx expo prebuild --platform ios
+# Prebuild
+npx expo prebuild --platform ios --clean
 
-# Build và run trên Simulator
+# Chạy iOS
 npx expo run:ios
 ```
 
 ---
 
-## 📂 Files Cấu Hình Cần Thiết
+## 📂 eas.json Config
 
-### eas.json (tạo tự động hoặc thủ công)
 ```json
 {
-  "cli": {
-    "version": ">= 7.0.0"
-  },
+  "cli": { "version": ">= 7.0.0" },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "ios": {
-        "simulator": true
-      }
+      "ios": { "simulator": true }
     },
-    "preview": {
-      "distribution": "internal"
-    },
+    "preview": { "distribution": "internal" },
     "production": {}
   }
 }
 ```
 
-### app.json (đã cấu hình)
-- Bundle ID: `com.ttstelegram.reader`
-- Background Audio: ✅ Enabled
-- Track Player Plugin: ✅ Configured
-
 ---
 
-## 🔧 Xử Lý Lỗi Thường Gặp
+## ❓ FAQ
 
-### Lỗi: "eas: command not found"
-```bash
-npm install -g eas-cli
-# hoặc
-yarn global add eas-cli
-```
+### Q: Tại sao local build fail?
+A: Xcode 26.2 SDK có breaking changes với React Native native modules. EAS Cloud dùng Xcode cũ hơn (15.4 hoặc 16.x) nên stable hơn.
 
-### Lỗi: "Not logged in"
-```bash
-eas login
-```
+### Q: Mất bao lâu để build trên EAS?
+A: ~15-20 phút cho build đầu tiên. Các build sau nhanh hơn (~5-10 phút).
 
-### Lỗi: "No EAS project configured"
-```bash
-eas build:configure
-```
-
-### Lỗi Build iOS (CocoaPods)
-```bash
-cd ios
-pod install
-cd ..
-```
-
----
-
-## 📱 Test Checklist
-
-Sau khi cài app thành công:
-
-- [ ] App khởi động không crash
-- [ ] Login screen hiển thị
-- [ ] Nhập số điện thoại → Nhận OTP
-- [ ] Xác thực OTP → Vào Groups screen
-- [ ] Load danh sách groups từ Telegram
-- [ ] Chọn groups → Bấm "Bắt đầu đọc"
-- [ ] Player screen hiện và phát audio
-- [ ] Background audio hoạt động (tắt màn hình)
-- [ ] Lock screen controls hoạt động
-
----
-
-## 🔗 Links Hữu Ích
-
-- [Expo EAS Build Docs](https://docs.expo.dev/build/introduction/)
-- [Development Builds](https://docs.expo.dev/development/create-development-builds/)
-- [react-native-track-player Docs](https://react-native-track-player.js.org/)
+### Q: Có cần Apple Developer Account không?
+A: Không cần cho iOS Simulator. Cần cho device thật.
