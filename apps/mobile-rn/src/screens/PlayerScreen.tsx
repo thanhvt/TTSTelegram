@@ -117,33 +117,40 @@ export default function PlayerScreen({ navigation }: Props) {
         </Text>
       </View>
 
-      {/* Now Playing Info */}
-      <View style={styles.nowPlaying}>
-        {/* Avatar placeholder */}
-        <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
-          <Text style={styles.avatarEmoji}>🎧</Text>
-        </View>
+      {/* Now Playing Info - Swipeable */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.nowPlaying, animatedStyle]}>
+          {/* Avatar placeholder */}
+          <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
+            <Text style={styles.avatarEmoji}>🎧</Text>
+          </View>
 
-        {/* Group name */}
-        <Text style={[styles.groupName, { color: theme.text }]}>
-          {currentItem?.dialogTitle || 'Đang chờ...'}
-        </Text>
-
-        {/* Message text */}
-        <Text
-          style={[styles.messageText, { color: theme.textSecondary }]}
-          numberOfLines={4}
-        >
-          {currentItem?.message.text || 'Chọn group và bấm "Bắt đầu đọc"'}
-        </Text>
-
-        {/* Sender info */}
-        {currentItem?.message.senderName && (
-          <Text style={[styles.senderInfo, { color: theme.textSecondary }]}>
-            👤 {currentItem.message.senderName}
+          {/* Group name */}
+          <Text style={[styles.groupName, { color: theme.text }]}>
+            {currentItem?.dialogTitle || 'Đang chờ...'}
           </Text>
-        )}
-      </View>
+
+          {/* Message text */}
+          <Text
+            style={[styles.messageText, { color: theme.textSecondary }]}
+            numberOfLines={4}
+          >
+            {currentItem?.message.text || 'Chọn group và bấm "Bắt đầu đọc"'}
+          </Text>
+
+          {/* Sender info */}
+          {currentItem?.message.senderName && (
+            <Text style={[styles.senderInfo, { color: theme.textSecondary }]}>
+              👤 {currentItem.message.senderName}
+            </Text>
+          )}
+
+          {/* Swipe hint */}
+          <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
+            ⬅️ Vuốt để chuyển track ➡️
+          </Text>
+        </Animated.View>
+      </GestureDetector>
 
       {/* Progress Bar */}
       <View style={styles.progressContainer}>
@@ -270,6 +277,11 @@ const styles = StyleSheet.create({
   },
   senderInfo: {
     ...typography.caption,
+  },
+  swipeHint: {
+    ...typography.caption,
+    marginTop: spacing.lg,
+    opacity: 0.6,
   },
   progressContainer: {
     paddingHorizontal: spacing['2xl'],

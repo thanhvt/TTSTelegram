@@ -13,8 +13,9 @@ import TrackPlayer from 'react-native-track-player';
 import AppNavigator from './src/navigation/AppNavigator';
 import { authStore } from './src/stores/authStore';
 import { useAppStore } from './src/stores/appStore';
-import { setupTrackPlayer } from './src/services/audio/trackPlayerSetup';
+import { setupPlayer } from './src/services/audio/trackPlayerSetup';
 import { useTheme } from './src/hooks/useTheme';
+import { subscribeToQuickActions } from './src/services/QuickActions';
 
 // Tạo QueryClient instance
 const queryClient = new QueryClient({
@@ -27,7 +28,7 @@ const queryClient = new QueryClient({
 });
 
 /**
- * App Initializer - Khôi phục session và setup player
+ * App Initializer - Khôi phục session, setup player, và xử lý Quick Actions
  */
 function AppInitializer({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +45,7 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
         }
 
         // Setup Track Player
-        await setupTrackPlayer();
+        await setupPlayer();
       } catch (error) {
         console.error('Lỗi khởi tạo app:', error);
       } finally {
@@ -54,6 +55,25 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
     initialize();
   }, [setAuthStatus]);
+
+  // F33: Subscribe to Quick Actions
+  useEffect(() => {
+    const unsubscribe = subscribeToQuickActions({
+      onPlay: () => {
+        // Navigate to Player và play
+        console.log('Quick Action: Play');
+        // Navigation sẽ được xử lý qua deep link
+      },
+      onGroups: () => {
+        console.log('Quick Action: Groups');
+      },
+      onSettings: () => {
+        console.log('Quick Action: Settings');
+      },
+    });
+
+    return unsubscribe;
+  }, []);
 
   if (isLoading) {
     return (
