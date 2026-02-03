@@ -26,5 +26,6 @@ interface DialogsResponse {
  */
 export async function getDialogs(): Promise<TelegramDialog[]> {
   const response = await apiClient<DialogsResponse>('/dialogs');
-  return response.dialogs;
+  // Đảm bảo luôn trả về mảng, tránh lỗi khi response là undefined/null
+  return response?.dialogs ?? [];
 }
