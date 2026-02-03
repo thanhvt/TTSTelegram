@@ -10,10 +10,24 @@
         "simulator": true
       }
     },
-    "preview": {
-      "distribution": "internal"
+    "development-device": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "credentialsSource": "local"
+      }
     },
-    "production": {}
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "credentialsSource": "local"
+      }
+    },
+    "production": {
+      "ios": {
+        "credentialsSource": "local"
+      }
+    }
   },
   "submit": {
     "production": {}

@@ -13,14 +13,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vcb.MegaApp",
+      "bundleIdentifier": "com.vcb.clos",
       "infoPlist": {
         "UIBackgroundModes": ["audio"],
         "NSMicrophoneUsageDescription": "App needs audio access for playback"
       }
     },
     "android": {
-      "package": "com.vcb.MegaApp",
+      "package": "com.vcb.clos",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
@@ -28,9 +28,7 @@
       "permissions": ["WAKE_LOCK", "FOREGROUND_SERVICE"]
     },
     "extra": {
-      "eas": {
-        "projectId": "tts-telegram-reader"
-      }
+      "eas": {}
     }
   }
 }

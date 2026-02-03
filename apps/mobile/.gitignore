@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Certificates and Provisioning Profiles
+cert_key_provisions/
+
+# Sensitive files
+credentials.json
+cert_key_provisions/
