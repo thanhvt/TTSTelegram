@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "TTS Telegram Reader",
+    "slug": "tts-telegram-reader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ttstelegram.reader",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "App needs audio access for playback"
+      }
+    },
+    "android": {
+      "package": "com.ttstelegram.reader",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": ["WAKE_LOCK", "FOREGROUND_SERVICE"]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "tts-telegram-reader"
+      }
+    }
+  }
+}
