@@ -15,7 +15,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.vcb.clos",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "NSMicrophoneUsageDescription": "App needs audio access for playback"
       }
     },
@@ -25,10 +27,16 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
-      "permissions": ["WAKE_LOCK", "FOREGROUND_SERVICE"]
+      "permissions": [
+        "WAKE_LOCK",
+        "FOREGROUND_SERVICE"
+      ]
     },
     "extra": {
-      "eas": {}
-    }
+      "eas": {
+        "projectId": "4c910c33-85b3-4b37-b49f-55c1bcac3960"
+      }
+    },
+    "owner": "thanh02101991"
   }
 }
