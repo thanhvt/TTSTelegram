@@ -8,14 +8,6 @@ import { apiClient } from './client';
 import { TelegramDialog } from '../../stores/appStore';
 
 // ============================================
-// TYPES
-// ============================================
-
-interface DialogsResponse {
-  dialogs: TelegramDialog[];
-}
-
-// ============================================
 // API FUNCTIONS
 // ============================================
 
@@ -23,9 +15,14 @@ interface DialogsResponse {
  * Lấy danh sách tất cả dialogs (groups, channels)
  *
  * @returns Danh sách TelegramDialog[] với unreadCount
+ * 
+ * @note apiClient đã unwrap data từ {success: true, data: [...]} thành [...] trực tiếp
  */
 export async function getDialogs(): Promise<TelegramDialog[]> {
-  const response = await apiClient<DialogsResponse>('/dialogs');
+  // apiClient trả về data trực tiếp (đã unwrap từ response.data)
+  const dialogs = await apiClient<TelegramDialog[]>('/dialogs');
+  console.log('[getDialogs] Received dialogs:', dialogs?.length ?? 0);
   // Đảm bảo luôn trả về mảng, tránh lỗi khi response là undefined/null
-  return response?.dialogs ?? [];
+  return dialogs ?? [];
 }
+

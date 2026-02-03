@@ -117,10 +117,17 @@ export default function GroupsScreen() {
    */
   const loadDialogs = useCallback(async () => {
     try {
+      console.log('[GroupsScreen] Đang gọi API getDialogs...');
       const data = await dialogsApi.getDialogs();
+      console.log('[GroupsScreen] API trả về:', data?.length ?? 0, 'dialogs');
       setDialogs(data);
     } catch (error) {
-      console.error('Lỗi load dialogs:', error);
+      console.error('[GroupsScreen] Lỗi load dialogs:', error);
+      Alert.alert(
+        'Lỗi tải dữ liệu',
+        error instanceof Error ? error.message : 'Không thể tải danh sách groups. Vui lòng thử lại.',
+        [{ text: 'OK' }]
+      );
     }
   }, [setDialogs]);
 

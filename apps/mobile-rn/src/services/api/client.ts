@@ -50,15 +50,18 @@ export async function apiClient<T>(
 ): Promise<T> {
   const session = await authStore.getSession();
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   // Thêm Authorization header nếu có session
   if (session) {
     (headers as Record<string, string>)['Authorization'] = `Bearer ${session}`;
   }
+
+  console.log(`[API] ${options.method || 'GET'} ${API_BASE}${endpoint}`);
+  console.log('[API] Có session:', session ? 'Có' : 'Không');
 
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -68,24 +71,31 @@ export async function apiClient<T>(
 
     // Parse response body
     const text = await response.text();
+    console.log('[API] Response status:', response.status);
+    console.log('[API] Response text (first 200 chars):', text.substring(0, 200));
+
     let data: ApiResponse<T>;
 
     try {
       data = JSON.parse(text);
     } catch {
+      console.error('[API] Lỗi parse JSON:', text.substring(0, 100));
       throw new ApiError(response.status, text);
     }
 
     // Check for HTTP errors
     if (!response.ok) {
+      console.error('[API] HTTP Error:', response.status, data.error);
       throw new ApiError(response.status, data.error || text);
     }
 
     // Return data if success
     if (data.success && data.data !== undefined) {
+      console.log('[API] Thành công, data type:', typeof data.data);
       return data.data;
     }
 
+    console.error('[API] Không thành công:', data.error);
     throw new ApiError(response.status, data.error || 'Lỗi không xác định');
   } catch (error) {
     if (error instanceof ApiError) {
@@ -93,6 +103,7 @@ export async function apiClient<T>(
     }
 
     // Network error
+    console.error('[API] Network error:', error);
     throw new ApiError(0, error instanceof Error ? error.message : 'Lỗi kết nối mạng');
   }
 }
