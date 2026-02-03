@@ -20,7 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../hooks/useTheme';
 import { useQueue } from '../hooks/useQueue';
-import { useAppStore, TelegramDialog } from '../stores/appStore';
+import { useAppStore, TelegramDialog, SortBy } from '../stores/appStore';
 import { dialogsApi } from '../services/api';
 import { RootStackParamList } from '../navigation/types';
 import { spacing, borderRadius, touchTarget, typography } from '../theme';
@@ -98,10 +98,13 @@ export default function GroupsScreen() {
   const {
     dialogs,
     selectedDialogIds,
+    sortBy,
     setDialogs,
     toggleDialogSelection,
     selectAllDialogs,
     deselectAllDialogs,
+    setSortBy,
+    getSortedDialogs,
   } = useAppStore();
 
   const { loadMessagesFromGroups, isLoading: isLoadingMessages } = useQueue();
@@ -163,6 +166,9 @@ export default function GroupsScreen() {
   // Key extractor
   const keyExtractor = useCallback((item: TelegramDialog) => item.id, []);
 
+  // Lấy danh sách đã sắp xếp
+  const sortedDialogs = getSortedDialogs();
+
   // Tính tổng unread của selected groups
   const totalUnread = dialogs
     .filter((d) => selectedDialogIds.includes(d.id))
@@ -198,9 +204,42 @@ export default function GroupsScreen() {
         </Text>
       </View>
 
+      {/* Sort Picker */}
+      <View style={[styles.sortRow, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+        <Text style={[styles.sortLabel, { color: theme.textSecondary }]}>Sắp xếp:</Text>
+        <TouchableOpacity
+          style={[
+            styles.sortOption,
+            sortBy === 'time' && { backgroundColor: theme.primary },
+          ]}
+          onPress={() => setSortBy('time')}
+        >
+          <Text style={[
+            styles.sortOptionText,
+            { color: sortBy === 'time' ? '#fff' : theme.text },
+          ]}>
+            🕒 Mới nhất
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.sortOption,
+            sortBy === 'unread' && { backgroundColor: theme.primary },
+          ]}
+          onPress={() => setSortBy('unread')}
+        >
+          <Text style={[
+            styles.sortOptionText,
+            { color: sortBy === 'unread' ? '#fff' : theme.text },
+          ]}>
+            📨 Chưa đọc
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Dialog List */}
       <FlatList
-        data={dialogs}
+        data={sortedDialogs}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
@@ -281,6 +320,27 @@ const styles = StyleSheet.create({
   },
   selectedCount: {
     ...typography.body,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    gap: spacing.sm,
+  },
+  sortLabel: {
+    ...typography.bodySmall,
+    marginRight: spacing.sm,
+  },
+  sortOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  sortOptionText: {
+    ...typography.bodySmall,
+    fontWeight: '500',
   },
   listContent: {
     paddingBottom: 100,

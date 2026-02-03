@@ -13,7 +13,7 @@ import TrackPlayer, {
   Track,
 } from 'react-native-track-player';
 import { useAppStore, QueueItem } from '../stores/appStore';
-import { ttsApi } from '../services/api';
+import { ttsApi, messagesApi } from '../services/api';
 import { setupPlayer } from '../services/audio';
 
 /**
@@ -39,6 +39,7 @@ export function useAudioPlayer() {
     updateQueueItem,
     nextInQueue,
     previousInQueue,
+    decrementDialogUnread,
   } = useAppStore();
 
   const [isReady, setIsReady] = useState(false);
@@ -165,12 +166,26 @@ export function useAudioPlayer() {
 
   /**
    * Skip to next
+   * Đánh dấu tin nhắn đã đọc và giảm unread count
    */
   const skipNext = useCallback(async () => {
     if (currentQueueIndex < queue.length - 1) {
-      // Mark current as completed
+      // Đánh dấu current là completed
       if (currentItem) {
         updateQueueItem(currentItem.id, { status: 'completed' });
+        
+        // F13: Đánh dấu tin nhắn đã đọc trên Telegram
+        try {
+          await messagesApi.markAsRead(
+            currentItem.message.dialogId,
+            [currentItem.message.id]
+          );
+          // Cập nhật unread count trong UI
+          decrementDialogUnread(currentItem.message.dialogId);
+          console.log('Đã đánh dấu đã đọc:', currentItem.message.id);
+        } catch (error) {
+          console.warn('Lỗi đánh dấu đã đọc:', error);
+        }
       }
 
       nextInQueue();
@@ -183,7 +198,7 @@ export function useAudioPlayer() {
         await generateAndPlay(nextItem);
       }
     }
-  }, [currentQueueIndex, queue, currentItem, nextInQueue, updateQueueItem, generateAndPlay]);
+  }, [currentQueueIndex, queue, currentItem, nextInQueue, updateQueueItem, generateAndPlay, decrementDialogUnread]);
 
   /**
    * Skip to previous

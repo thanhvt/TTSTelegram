@@ -51,6 +51,9 @@ export interface QueueItem {
 
 export type TTSProvider = 'google' | 'openai' | 'google-cloud';
 
+// Loại sắp xếp groups
+export type SortBy = 'time' | 'unread';
+
 // ============================================
 // STORE INTERFACE
 // ============================================
@@ -65,9 +68,13 @@ interface AppState {
   // Dialogs
   dialogs: TelegramDialog[];
   selectedDialogIds: string[];
+  sortBy: SortBy;
   setDialogs: (dialogs: TelegramDialog[]) => void;
   toggleDialogSelection: (dialogId: string) => void;
   selectAllDialogs: () => void;
+  setSortBy: (sortBy: SortBy) => void;
+  decrementDialogUnread: (dialogId: string) => void;
+  getSortedDialogs: () => TelegramDialog[];
   deselectAllDialogs: () => void;
 
   // Queue
@@ -115,6 +122,7 @@ export const useAppStore = create<AppState>()(
       // Dialogs
       dialogs: [],
       selectedDialogIds: [],
+      sortBy: 'time' as SortBy,
       setDialogs: (dialogs) => set({ dialogs }),
       toggleDialogSelection: (dialogId) =>
         set((state) => ({
@@ -127,6 +135,29 @@ export const useAppStore = create<AppState>()(
           selectedDialogIds: state.dialogs.map((d) => d.id),
         })),
       deselectAllDialogs: () => set({ selectedDialogIds: [] }),
+      setSortBy: (sortBy) => set({ sortBy }),
+      decrementDialogUnread: (dialogId) =>
+        set((state) => ({
+          dialogs: state.dialogs.map((d) =>
+            d.id === dialogId ? { ...d, unreadCount: Math.max(0, d.unreadCount - 1) } : d
+          ),
+        })),
+      getSortedDialogs: () => {
+        const state = get();
+        const sorted = [...state.dialogs];
+        if (state.sortBy === 'unread') {
+          // Sắp xếp theo số tin chưa đọc (nhiều nhất trước)
+          sorted.sort((a, b) => b.unreadCount - a.unreadCount);
+        } else {
+          // Sắp xếp theo thời gian (mới nhất trước)
+          sorted.sort((a, b) => {
+            const dateA = a.lastMessageDate ? new Date(a.lastMessageDate).getTime() : 0;
+            const dateB = b.lastMessageDate ? new Date(b.lastMessageDate).getTime() : 0;
+            return dateB - dateA;
+          });
+        }
+        return sorted;
+      },
 
       // Queue
       queue: [],

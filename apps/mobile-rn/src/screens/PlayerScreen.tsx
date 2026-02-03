@@ -1,11 +1,11 @@
 /**
  * Player Screen - Màn hình player modal với controls
  *
- * @description Full-screen player với now playing, controls, progress bar
+ * @description Full-screen player với now playing, controls, progress bar, swipe gestures
  * @navigation Mở như modal từ Groups screen
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,13 @@ import {
   Dimensions,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { RootStackParamList } from '../navigation/types';
@@ -52,6 +59,48 @@ export default function PlayerScreen({ navigation }: Props) {
 
   // Progress percentage
   const progressPercent = duration > 0 ? (position / duration) * 100 : 0;
+
+  // F30: Swipe gesture handling
+  const translateX = useSharedValue(0);
+  const SWIPE_THRESHOLD = 100;
+
+  // Callbacks cho gesture (phải dùng runOnJS vì là JS function)
+  const handleSwipeLeft = useCallback(() => {
+    if (currentIndex < queueLength - 1) {
+      skipNext();
+    }
+  }, [currentIndex, queueLength, skipNext]);
+
+  const handleSwipeRight = useCallback(() => {
+    if (currentIndex > 0) {
+      skipPrevious();
+    }
+  }, [currentIndex, skipPrevious]);
+
+  // Pan gesture
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      translateX.value = event.translationX;
+    })
+    .onEnd((event) => {
+      if (event.translationX < -SWIPE_THRESHOLD) {
+        // Swipe left → Skip Next
+        runOnJS(handleSwipeLeft)();
+      } else if (event.translationX > SWIPE_THRESHOLD) {
+        // Swipe right → Skip Previous
+        runOnJS(handleSwipeRight)();
+      }
+      // Snap back với spring animation
+      translateX.value = withSpring(0, {
+        damping: 20,
+        stiffness: 200,
+      });
+    });
+
+  // Animated style cho swipe feedback
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value * 0.3 }],
+  }));
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
