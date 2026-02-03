@@ -2,6 +2,9 @@
 #
 .DS_Store
 
+# Certificates
+cert_key_provisions/
+
 # Xcode
 #
 build/
