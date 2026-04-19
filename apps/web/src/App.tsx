@@ -107,11 +107,11 @@ export default function App() {
     clearQueue();
 
     try {
-      // Xác định limit dựa trên unreadCount của mỗi dialog
+      // Xác định limit dựa trên unreadCount của mỗi dialog (không giới hạn cứng)
       const dialogLimits = selectedDialogIds.map(id => {
         const dialog = dialogs.find(d => d.id === id);
-        // Sử dụng unreadCount, tối thiểu 1, tối đa 100
-        return Math.min(Math.max(dialog?.unreadCount || 10, 1), 100);
+        // Sử dụng unreadCount trực tiếp, tối thiểu 1
+        return Math.max(dialog?.unreadCount || 10, 1);
       });
 
       // Tính tổng limit (để log)

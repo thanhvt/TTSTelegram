@@ -35,7 +35,7 @@ router.get('/:dialogId', async (req: Request, res: Response<PaginatedResponse<Te
     }
 
     const { dialogId } = req.params;
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 300);
+    const limit = parseInt(req.query.limit as string) || 50;
 
     const messages = await telegramService.getMessages(dialogId, limit);
 
@@ -97,8 +97,8 @@ router.post('/batch', async (req: Request, res: Response<ApiResponse<Record<stri
     // Lấy messages từ từng dialog
     for (const dialogId of limitedDialogIds) {
       try {
-        // Tăng giới hạn lên 300 để phù hợp với single endpoint và hỗ trợ nhiều tin nhắn chưa đọc hơn
-        result[dialogId] = await telegramService.getMessages(dialogId, Math.min(limit, 300));
+        // Không giới hạn cứng - để unreadCount quyết định số lượng tin nhắn cần lấy
+        result[dialogId] = await telegramService.getMessages(dialogId, limit);
         // Delay nhỏ để tránh rate limit
         await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
